@@ -1,0 +1,50 @@
+{"id": "nb-001", "query": "华远制造集团的总部位于哪里？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-00"], "keywords": ["华远制造集团", "广东佛山"]}}
+{"id": "nb-002", "query": "泰和银行的资产规模大约是多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-01"], "keywords": ["泰和银行", "八千亿元"]}}
+{"id": "nb-003", "query": "米粒电商的年GMV大约是多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-02"], "keywords": ["米粒电商", "两百五十亿元", "GMV"]}}
+{"id": "nb-004", "query": "顺捷物流的总部在哪个城市？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-03"], "keywords": ["顺捷物流", "武汉"]}}
+{"id": "nb-005", "query": "中安保险每年处理多少理赔案件？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-04"], "keywords": ["中安保险", "六百万件", "理赔"]}}
+{"id": "nb-006", "query": "星辰教育成立于哪一年？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-05"], "keywords": ["星辰教育", "2015年"]}}
+{"id": "nb-007", "query": "优康医疗旗下有多少家直营医院和诊疗中心？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-06"], "keywords": ["优康医疗", "三十二家"]}}
+{"id": "nb-008", "query": "拓普汽车的总部位于哪里？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-07"], "keywords": ["拓普汽车", "浙江宁波"]}}
+{"id": "nb-009", "query": "司脑检索模块处理中文内容时使用什么分词器？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-32"], "keywords": ["IK分词器", "ik_max_word"]}}
+{"id": "nb-010", "query": "智枢需求预测引擎能把客户的预测误差MAPE从多少降到多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-35"], "keywords": ["MAPE", "28%", "13%"]}}
+{"id": "nb-011", "query": "张涵在百度期间主导的分布式索引重构项目把查询延迟降低了多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-19"], "keywords": ["张涵", "百度", "近40%"]}}
+{"id": "nb-012", "query": "李明远在创立风行科技前曾在哪家公司工作？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "单文档事实", "expected": {"docs": ["p7-18"], "keywords": ["李明远", "腾讯", "高级算法工程师"]}}
+{"id": "nb-013", "query": "风行科技的CTO是谁？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-19", "p7-17"], "keywords": ["张涵", "CTO"]}}
+{"id": "nb-014", "query": "蓝鲸科技的CTO和产品负责人向谁汇报？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-21", "p7-38"], "keywords": ["林晓", "陈雨", "周明轩"]}}
+{"id": "nb-015", "query": "启明星科技的CFO是谁，向谁汇报？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-24", "p7-25"], "keywords": ["孙悦", "赵天成", "CFO"]}}
+{"id": "nb-016", "query": "蓝鲸科技与清华联合实验室由哪两位共同负责？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-08", "p7-38"], "keywords": ["林晓", "张伟教授", "联合实验室"]}}
+{"id": "nb-017", "query": "王思琪和张涵在组织上是什么关系？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-20", "p7-17"], "keywords": ["王思琪", "张涵", "平级"]}}
+{"id": "nb-018", "query": "吴江代表哪家机构进入蓝鲸科技董事会？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-09", "p7-21"], "keywords": ["吴江", "高瓴资本", "董事"]}}
+{"id": "nb-019", "query": "周明轩和林晓是怎么相识并共同创业的？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-23", "p7-22"], "keywords": ["周明轩", "林晓", "企业AI应用峰会"]}}
+{"id": "nb-020", "query": "智枢平台的技术研发由谁主导，他向谁汇报？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "人物关系", "expected": {"docs": ["p7-35", "p7-24"], "keywords": ["陈立", "赵天成", "技术副总裁"]}}
+{"id": "nb-021", "query": "风行科技司脑平台研发流程分为哪几个标准阶段？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-26"], "keywords": ["需求阶段", "设计阶段", "评审阶段"]}}
+{"id": "nb-022", "query": "风行研发规范要求代码提交前单元测试的行覆盖率不低于多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-26"], "keywords": ["行覆盖率", "70%"]}}
+{"id": "nb-023", "query": "启明星科技智枢研发管理制度由谁编制，什么时候开始执行？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-29"], "keywords": ["陈立", "2021年4月1日"]}}
+{"id": "nb-024", "query": "智枢版本质量门第一道代码门禁要求单元测试通过率须大于多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-29"], "keywords": ["单元测试通过率", "80%"]}}
+{"id": "nb-025", "query": "鲸智平台首个对外上线的能力模块是什么？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-28"], "keywords": ["意图识别", "林晓", "陈雨"]}}
+{"id": "nb-026", "query": "司脑平台的权限模块v1.0是什么时候上线的？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-27"], "keywords": ["权限模块", "2023Q1"]}}
+{"id": "nb-027", "query": "启明星科技供应链风控评分依据的原始特征数据须保留多少年？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-30"], "keywords": ["5年", "金融监管"]}}
+{"id": "nb-028", "query": "司脑平台的发布评审委员会由哪三人组成？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "政策制度", "expected": {"docs": ["p7-26"], "keywords": ["发布评审委员会", "李明远", "张涵", "王思琪"]}}
+{"id": "nb-029", "query": "司脑平台由哪四大核心模块构成？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-31", "p7-37"], "keywords": ["检索模块", "图谱模块", "问答模块", "权限模块"]}}
+{"id": "nb-030", "query": "司脑图谱模块使用什么图数据库存储知识图谱？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-31", "p7-32"], "keywords": ["Neo4j", "图谱模块"]}}
+{"id": "nb-031", "query": "司脑检索模块的向量检索通道基于什么向量数据库构建？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-32"], "keywords": ["Milvus", "向量检索"]}}
+{"id": "nb-032", "query": "司脑检索模块RRF融合公式中的k默认取值是多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-32"], "keywords": ["RRF", "k默认取60"]}}
+{"id": "nb-033", "query": "鲸智平台的四大核心能力是什么？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-34", "p7-38"], "keywords": ["意图识别", "多轮对话", "知识库问答", "坐席协同"]}}
+{"id": "nb-034", "query": "智枢平台的三大核心引擎分别是什么？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-35", "p7-36"], "keywords": ["需求预测引擎", "智能调度引擎", "供应链风控引擎"]}}
+{"id": "nb-035", "query": "智枢智能调度引擎的车辆路径优化器采用什么核心算法？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-36"], "keywords": ["自适应大邻域搜索", "ALNS", "禁忌搜索"]}}
+{"id": "nb-036", "query": "司脑问答模块的上下文窗口限制是多少Token？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "产品架构", "expected": {"docs": ["p7-33"], "keywords": ["4096 Token", "上下文窗口"]}}
+{"id": "nb-037", "query": "风行科技A轮融资由哪家机构领投，金额多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-15", "p7-37"], "keywords": ["清源资本", "6000万"]}}
+{"id": "nb-038", "query": "蓝鲸科技A轮融资金额和投后估值分别是多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-13", "p7-38"], "keywords": ["高瓴资本", "1亿元", "8亿元"]}}
+{"id": "nb-039", "query": "启明星科技B轮融资金额和投后估值是多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-14", "p7-39"], "keywords": ["红杉资本", "3亿元", "20亿元"]}}
+{"id": "nb-040", "query": "司脑与智枢联合推出的一体化解决方案叫什么名字？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-11"], "keywords": ["知枢一体版", "华远制造集团"]}}
+{"id": "nb-041", "query": "蓝鲸科技与清华大学的联合实验室叫什么名称？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-08"], "keywords": ["鲸清对话智能联合实验室"]}}
+{"id": "nb-042", "query": "红杉资本对启明星科技A轮和B轮累计投入多少资金？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-10", "p7-16"], "keywords": ["红杉资本", "3.8亿元"]}}
+{"id": "nb-043", "query": "蓝鲸科技在清华联合实验室的年度投入约为多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-08"], "keywords": ["800万元", "联合实验室"]}}
+{"id": "nb-044", "query": "风行科技与启明星科技的产品集成合作双方负责人分别是谁？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "融资合作", "expected": {"docs": ["p7-11"], "keywords": ["王思琪", "陈立"]}}
+{"id": "nb-045", "query": "三家公司中投后估值最高的是哪家，估值多少？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-16", "p7-39"], "keywords": ["启明星科技", "20亿元"]}}
+{"id": "nb-046", "query": "华远制造集团、拓普汽车、顺捷物流三家在智枢生态网络中是什么关系？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-12"], "keywords": ["华远制造集团", "拓普汽车", "顺捷物流"]}}
+{"id": "nb-047", "query": "清华联合实验室的层次化意图识别成果在哪个客户部署中降低了误识别率？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-08"], "keywords": ["米粒电商", "层次化意图", "42%"]}}
+{"id": "nb-048", "query": "司脑平台服务过哪些金融和保险行业客户？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-11"], "keywords": ["泰和银行", "中安保险"]}}
+{"id": "nb-049", "query": "风行、蓝鲸、启明星三家公司的技术负责人分别是谁？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-30"], "keywords": ["张涵", "林晓", "陈立"]}}
+{"id": "nb-050", "query": "蓝鲸科技鲸智服务的电商和教育行业标杆客户分别是谁？", "source_id": "ab60d419-1273-4f72-ba60-8eb2c02d854c", "layer": "跨文档综合", "expected": {"docs": ["p7-09"], "keywords": ["米粒电商", "星辰教育"]}}

@@ -1,0 +1,8 @@
+{"id":"gr-001","query":"Who is the CTO of Northwind Labs, and which project does he sponsor?","mode":"mix","expected":{"keywords":["David Park","Project Atlas"]}}
+{"id":"gr-002","query":"Which customer uses Project Atlas, and who is the executive sponsor?","mode":"mix","expected":{"keywords":["Acme Health","Lena Ortiz"]}}
+{"id":"gr-003","query":"What risk threatens Acme Health's renewal, and who owns the technical mitigation?","mode":"mix","expected":{"keywords":["Epic","Alex Rivera"]}}
+{"id":"gr-004","query":"Which partner implements Project Aurora, and for which customer?","mode":"mix","expected":{"keywords":["Skyline Networks","Summit Manufacturing"]}}
+{"id":"gr-005","query":"Who is the COO of Summit Manufacturing, and when does the contract renew?","mode":"mix","expected":{"keywords":["Robert Hayes","February 15, 2027"]}}
+{"id":"gr-006","query":"Which project depends on the Epic integration, and what is the deadline?","mode":"mix","expected":{"keywords":["Project Atlas","January 31, 2027"]}}
+{"id":"gr-007","query":"Who leads security at Northwind Labs, and how fast must incidents be reported?","mode":"mix","expected":{"keywords":["Priya Shah","72 hours"]}}
+{"id":"gr-008","query":"Who is the CEO of Northwind Labs, and which customer renews first?","mode":"mix","expected":{"keywords":["Elena Vasquez","Acme Health"]}}

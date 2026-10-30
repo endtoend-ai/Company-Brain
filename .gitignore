@@ -1,0 +1,30 @@
+node_modules
+.env
+.env.local
+.DS_Store
+dist
+.next
+*.log
+.venv
+__pycache__
+*.pyc
+archive/
+output/
+.pi
+.traditional-rag-storage/
+apps/web/.platform-data/
+apps/web/design-system/
+.superpowers/
+
+# P7-B vendored tokenizer(tokenizer.json 11MB + config, 用 scripts/fetch-tokenizers.sh 下载, 不入库)
+assets/tokenizers/
+eval/route-optimization/.venv/
+
+# AgentTeams runtime state (contains planning metadata, not product code)
+.agent-teams/
+
+# Generated demo manifest (runtime ids, not committed)
+eval/manifest.json
+
+# GraphRAG local workspace (LightRAG runtime state)
+.graph-rag-workdir/

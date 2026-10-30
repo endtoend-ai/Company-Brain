@@ -1,0 +1,16 @@
+{
+  "module": "graph-rag",
+  "tag": "en",
+  "generated_at": "2026-10-30T15:50:51.735514",
+  "summary": {
+    "total": 8,
+    "nonempty_rate": 1.0,
+    "keyword_coverage_avg": 1.0,
+    "source_hit_rate": null,
+    "latency_ms": {
+      "p50": 3318.1,
+      "p95": 7577.1,
+      "max": 7577.1
+    }
+  }
+}

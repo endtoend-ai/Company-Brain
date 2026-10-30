@@ -1,0 +1,22 @@
+{
+  "module": "nano-brain",
+  "tag": "en",
+  "generated_at": "2026-10-30T15:50:24.827956",
+  "summary": {
+    "total": 10,
+    "nonempty_rate": 1.0,
+    "recall@1": 0.8,
+    "recall@3": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 0.9,
+    "keyword_coverage_avg": 0.45,
+    "latency_ms": {
+      "p50": 1696.0,
+      "p95": 4414.2,
+      "max": 4414.2
+    },
+    "errored": 0,
+    "errored_ids": []
+  }
+}

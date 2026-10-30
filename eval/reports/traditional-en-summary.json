@@ -1,0 +1,22 @@
+{
+  "module": "traditional",
+  "tag": "en",
+  "generated_at": "2026-10-30T15:50:04.479231",
+  "summary": {
+    "total": 10,
+    "nonempty_rate": 1.0,
+    "recall@1": 0.9,
+    "recall@3": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "mrr": 0.95,
+    "keyword_coverage_avg": 0.4,
+    "latency_ms": {
+      "p50": 1582.9,
+      "p95": 2778.8,
+      "max": 2778.8
+    },
+    "errored": 0,
+    "errored_ids": []
+  }
+}

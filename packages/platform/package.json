@@ -1,0 +1,9 @@
+{
+  "name": "@ff/platform",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ff/contracts": "workspace:*"
+  }
+}

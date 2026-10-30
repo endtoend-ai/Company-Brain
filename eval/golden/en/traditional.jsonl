@@ -1,0 +1,10 @@
+{"id":"tr-001","query":"What is the hotel cap in San Francisco?","expected":{"docs":["04-travel-expense-policy.md"],"keywords":["$280","San Francisco"]}}
+{"id":"tr-002","query":"How many days do employees have to submit receipts after a trip?","expected":{"docs":["04-travel-expense-policy.md"],"keywords":["30 days"]}}
+{"id":"tr-003","query":"When does the current SOC 2 Type II observation period end?","expected":{"docs":["05-security-compliance.md"],"keywords":["July 31, 2026"]}}
+{"id":"tr-004","query":"How quickly must customers be notified of a confirmed data breach?","expected":{"docs":["05-security-compliance.md"],"keywords":["72 hours"]}}
+{"id":"tr-005","query":"What is the monthly availability target for signal ingestion?","expected":{"docs":["07-engineering-runbook.md"],"keywords":["99.95%"]}}
+{"id":"tr-006","query":"Who is the Chief Technology Officer of Northwind Labs?","expected":{"docs":["01-northwind-overview.md"],"keywords":["David Park"]}}
+{"id":"tr-007","query":"How many people does Northwind Labs employ?","expected":{"docs":["01-northwind-overview.md"],"keywords":["180"]}}
+{"id":"tr-008","query":"When is Acme Health's contract renewal date?","expected":{"docs":["02-acme-health-account.md"],"keywords":["November 30, 2026"]}}
+{"id":"tr-009","query":"Which customer is deploying Project Aurora?","expected":{"docs":["03-summit-manufacturing-account.md"],"keywords":["Summit Manufacturing"]}}
+{"id":"tr-010","query":"What is Summit Manufacturing's annual recurring revenue?","expected":{"docs":["03-summit-manufacturing-account.md"],"keywords":["$450,000"]}}
