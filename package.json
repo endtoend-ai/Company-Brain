@@ -43,5 +43,6 @@
     "@types/bun": "latest",
     "@types/pg": "latest",
     "typescript": "latest"
-  }
+  },
+  "license": "MIT"
 }

@@ -1,0 +1,23 @@
+# NOTICE
+
+CompanyBrain
+Copyright (c) 2026 AI Engineering Store
+
+All source code in this repository is original work by AI Engineering Store and is licensed under
+the MIT License (see [LICENSE](LICENSE)).
+
+Third-party software is consumed as dependencies or external services; no third-party source code
+is vendored in this repository:
+
+- **lightrag-hku** (MIT) — the GraphRAG module's entity/relationship extraction engine.
+- **pgvector** (PostgreSQL License) and **Apache AGE** (Apache-2.0) — PostgreSQL extensions used by
+  the retrieval modules.
+- **MinerU** (AGPL-3.0) — an optional external OCR service called over HTTP for scanned PDFs. No
+  MinerU code is included in this repository; enabling it means using the service at
+  <https://mineru.net> under its own terms.
+- **npm and PyPI dependencies** — every package installed from a registry keeps its own license;
+  the exact versions are pinned in `bun.lock` and the per-module `uv.lock` files, and the declared
+  license of each direct dependency is in the corresponding `package.json` / `pyproject.toml`.
+
+The `modules/nano-brain` implementation was designed from GBrain's published ideas; it contains no
+copied gbrain source files.

@@ -1,50 +1,47 @@
 # CompanyBrain
 
-**One workspace, three retrieval engines.** CompanyBrain is a local-first enterprise knowledge
-platform. Upload company material once, then choose the engine that fits the question: document
-evidence, relationship graphs, or a page-based knowledge brain. Every answer comes with citations.
+CompanyBrain is a local-first knowledge workspace. Upload company material once, then query it
+through three different retrieval engines — document RAG, a relationship graph, or a page-based
+knowledge brain — and get answers with citations.
 
 ![CompanyBrain home](docs/assets/screenshots/01-home.png)
 
-## Three engines, one workspace
+## Quick start
 
-| Engine | What it is good at | How it retrieves |
-| --- | --- | --- |
-| **Naive RAG** | Policies, contracts, runbooks, evidence-heavy Q&A | Chunking + pgvector embeddings + keyword search, fused ranking, table lookup |
-| **GraphRAG** | Customers, suppliers, projects, risk paths, multi-hop questions | LightRAG entity/relationship extraction stored in PostgreSQL + Apache AGE |
-| **Gbrain (Nano Brain)** | Personal notes, team handbooks, research pages, facts and links | Markdown pages → chunks → embeddings + keyword index, fused with RRF; facts, links, and dream maintenance |
+Prerequisites:
 
-Each engine keeps its own upload, processing, retrieval, and maintenance path. The platform only
-provides identity, routing, and the workspace on top.
+- [Bun](https://bun.sh) and Node.js 20+.
+- [uv](https://docs.astral.sh/uv/) for the two Python retrieval modules.
+- PostgreSQL 17 with the `pgvector` extension, plus Apache AGE for the GraphRAG engine.
+- An OpenAI-compatible embedding endpoint and a chat model endpoint.
 
-## See it in action
+```sh
+cp .env.example .env    # fill in the database URLs and model/embedding credentials
+bun install && uv sync --project modules/traditional-rag && uv sync --project modules/graph-rag
+bun run postgres:dev && bun run db:init && bun run admin:create && bun run dev:all
+```
 
-| Gbrain answer | Naive RAG answer | GraphRAG answer |
-| --- | --- | --- |
-| ![Gbrain answer](docs/assets/screenshots/03-gbrain-answer.png) | ![Naive RAG answer](docs/assets/screenshots/04-naive-answer.png) | ![GraphRAG answer](docs/assets/screenshots/05-graph-answer.png) |
+Open `http://localhost:3000` and sign in with the admin account from `.env`.
 
-The product scenarios, admin console, and evaluation loop share the same workspace:
+What still needs separate configuration:
 
-| Workspace | Graph curation | Quality evaluation |
-| --- | --- | --- |
-| ![Workspace](docs/assets/screenshots/02-workspace.png) | ![Graph curation](docs/assets/screenshots/06-graph-explorer.png) | ![Evaluation](docs/assets/screenshots/07-evaluation.png) |
+- `bun run postgres:dev` is a macOS helper. On Linux, start PostgreSQL yourself with `pgvector` and
+  `AGE` installed and run `bun run db:init` against it.
+- MinerU cloud OCR is optional; set `MINERU_*` in `.env` to enable it for scanned PDFs.
+- Deployment details (systemd, production database, model settings) are in
+  [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## Benchmark
+## What it does
 
-![Retrieval benchmark](docs/assets/benchmarks.png)
-
-| Engine | Queries | Recall@1 | Recall@5 | MRR | p50 latency |
-| --- | --- | --- | --- | --- | --- |
-| Naive RAG | 10 | 0.900 | 1.000 | 0.950 | 1,583 ms |
-| Gbrain (Nano Brain) | 10 | 0.800 | 1.000 | 0.900 | 1,696 ms |
-| GraphRAG | 8 | — | — | keyword coverage 1.000 | 3,318 ms |
-
-GraphRAG returns graph context rather than ranked document IDs; all 8 relationship queries returned
-non-empty context.
-
-The benchmark is reproducible from the repository: seven English documents, ten queries per vector
-engine, and eight relationship queries. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md) for the corpus,
-metrics, and commands.
+- **Three retrieval engines in one workspace.** Naive RAG (pgvector embeddings fused with keyword
+  search), GraphRAG (LightRAG entity/relationship extraction stored in PostgreSQL + Apache AGE), and
+  a Gbrain-style nano brain (pages, chunks, facts, typed links and dream maintenance).
+- **Cited answers.** Every answer returns the source evidence it was built from, and the workspace
+  shows document and graph context next to the answer.
+- **Admin console.** Manage sources, knowledge bases, users, model providers and retrieval settings;
+  upload and re-index material without touching the database.
+- **Retrieval evaluation loop.** The repository ships an English demo corpus, golden query sets and
+  a benchmark harness so a retrieval change can be measured before it ships.
 
 ## Architecture
 
@@ -65,92 +62,16 @@ flowchart LR
   R --> AGE[(Apache AGE graph)]
 ```
 
-- One PostgreSQL instance, five databases: identity, Gbrain, Naive RAG, GraphRAG, agent checkpoints.
-- The platform API never reads module tables directly; it calls each module's HTTP API with an
-  internal token.
-- The agent gateway orchestrates module MCP servers instead of implementing retrieval itself.
+- `apps/api` is the platform API (identity, routing, module dispatch); `apps/web` is the workspace;
+  `apps/agent-gateway` runs agent conversations and MCP tool orchestration.
+- `modules/nano-brain`, `modules/traditional-rag` and `modules/graph-rag` are independent retrieval
+  services, each with its own HTTP API and database.
+- One PostgreSQL instance hosts five databases: identity, the three engines, and agent checkpoints.
 
-## Quick start
-
-Prerequisites: Bun, Node.js 20+, uv, PostgreSQL 17 with pgvector, and Apache AGE for GraphRAG.
-
-```bash
-cp .env.example .env        # add model, embedding, rerank, and database credentials
-bun install
-uv sync --project modules/traditional-rag
-uv sync --project modules/graph-rag
-
-bun run postgres:dev        # macOS helper; on Linux start the systemd unit
-bun run db:init
-bun run admin:create
-bun run dev:all
-```
-
-Open `http://localhost:3000` and sign in with the admin account from `.env`.
-
-Full instructions, including Linux, systemd, and production notes:
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
-## Demo dataset
-
-The project screenshots and benchmark use a reproducible English demo universe (Northwind Labs,
-a fictional San Francisco B2B SaaS company):
-
-```bash
-./scripts/reset-demo-data.sh --yes    # drop the five demo databases and local platform store
-bun run db:init
-bun run admin:create
-bun run dev:all             # keep running
-bun run demo:seed           # ingest 7 documents + create 3 product scenarios
-bun run demo:eval           # benchmark the three engines
-bun run demo:chart          # render the benchmark chart
-bun run demo:assets         # capture the screenshots used in this README
-```
-
-## Multimodal status
-
-Images are supported as **input**, not yet as **evidence returned to the user**:
-
-- A standalone image upload is described by the configured vision model and the description is
-  ingested as searchable text.
-- PDF figures parsed by MinerU are extracted to local storage and recorded in document metadata;
-  the search API returns their paths, but there is no authenticated image endpoint or thumbnail UI
-  yet.
-- Audio and video can be transcribed when an OpenAI-compatible transcription endpoint is configured.
-
-Returning the image itself (citation thumbnails and an authenticated image endpoint) is on the
-roadmap. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the current multimodal configuration.
-
-## Repository layout
-
-```txt
-apps/
-  api/                 Platform API: identity, routing, module dispatch
-  web/                 Next.js workspace and admin console
-  agent-gateway/       Agent conversations, SSE, MCP tool orchestration
-modules/
-  nano-brain/          Gbrain: pages, chunks, facts, links, dream maintenance
-  traditional-rag/     Naive RAG: parsing, chunking, hybrid retrieval, tables
-  graph-rag/           GraphRAG: LightRAG entities and relationships on Apache AGE
-packages/
-  contracts/           Shared types
-  gateway/             Module registry and HTTP dispatch
-  identity/            Users, sessions, bearer tokens
-  platform/            Templates, demo data, governance helpers
-scripts/               Database bootstrap, demo seeding, evaluation, deployment
-eval/                  English corpus, golden query sets, retrieval harness
-docs/                  Architecture, deployment, API, and benchmark documentation
-```
-
-## Documentation
-
-- [Deployment and operations](docs/DEPLOYMENT.md)
-- [Benchmarks](docs/BENCHMARKS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Service boundaries](docs/SERVICE_BOUNDARIES.md)
-- [Platform API](docs/API.md)
-- [中文 README](README.zh-CN.md)
+Further reading: [architecture](docs/ARCHITECTURE.md), [service boundaries](docs/SERVICE_BOUNDARIES.md),
+[benchmarks](docs/BENCHMARKS.md), [platform API](docs/API.md).
 
 ## License
 
-CompanyBrain is proprietary software. All rights reserved.
+MIT, see [LICENSE](LICENSE). No third-party source code is vendored in this repository; the
+dependencies installed from npm and PyPI keep their own licenses. See [NOTICE](NOTICE).
