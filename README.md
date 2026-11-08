@@ -31,6 +31,23 @@ What still needs separate configuration:
 - Deployment details (systemd, production database, model settings) are in
   [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
+## GraphRAG MCP server
+
+The GraphRAG module also runs as an MCP server over **stdio**. Run it from the repository root
+with the same Python environment the workspace uses:
+
+```sh
+export GRAPH_RAG_DATABASE_URL=postgres://<local-user>@localhost:5432/graph_rag_db
+export GRAPH_RAG_MCP_TOKEN=<token from the calling session>
+uv run --project modules/graph-rag python -m graph_rag.mcp.server
+```
+
+`GRAPH_RAG_MCP_TOKEN` is required and process scoped; the server also reads `FF_USER_ID`,
+`FF_USERNAME` and `FF_IS_ADMIN` from the environment. The Agent Gateway starts one stdio process per
+user session and injects these variables.
+
+Tools exposed: `graph_search`, `graph_list_sources`, `graph_get_document`.
+
 ## What it does
 
 - **Three retrieval engines in one workspace.** Naive RAG (pgvector embeddings fused with keyword
