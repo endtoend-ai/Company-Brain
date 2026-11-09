@@ -4,6 +4,11 @@ CompanyBrain is a local-first knowledge workspace. Upload company material once,
 through three different retrieval engines — document RAG, a relationship graph, or a page-based
 knowledge brain — and get answers with citations.
 
+**Project page: [aiengstore.com/projects/company-brain](https://aiengstore.com/projects/company-brain).**
+This repository is the open-source version of CompanyBrain and the code stays here. The project page
+carries the write-up — the retrieval benchmarks, the GraphRAG gaps and the MCP wiring, each claim
+traced to a file and a line — next to the rest of the collection.
+
 ![CompanyBrain home](docs/assets/screenshots/01-home.png)
 
 ## Quick start
