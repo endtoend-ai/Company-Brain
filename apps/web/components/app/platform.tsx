@@ -1689,7 +1689,10 @@ export function TaskCenterPage({ initialSnapshot }: { initialSnapshot?: Platform
 export function KnowledgeSpacePage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
   const { t } = useI18n();
   const { snapshot, state } = usePlatformSnapshot(initialSnapshot);
-  const knowledgeObjects = useMemo(() => snapshot.knowledge.map(toKnowledgeSpaceObject), [snapshot.knowledge]);
+  const knowledgeObjects = useMemo(
+    () => snapshot.knowledge.map((record) => toKnowledgeSpaceObject(record, t)),
+    [snapshot.knowledge, t]
+  );
   const [scopeFilter, setScopeFilter] = useState<KnowledgeAssetScope>("all");
   const [kindFilter, setKindFilter] = useState<KnowledgeAssetKindFilter>("all");
   const [query, setQuery] = useState("");

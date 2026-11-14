@@ -1,6 +1,11 @@
 import type { KnowledgeSpaceObject, ProcessingTask, ScenarioInstance, Visibility } from "../../lib/fixtures/frontstage";
+import { en, translate } from "../../lib/i18n";
 
 export type AdminEngine = "Gbrain" | "Naive RAG" | "GraphRAG";
+
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+const defaultTranslate: Translate = (key, vars) => translate(en, key, vars);
 
 export type LiveScenarioRecord = {
   id: string;
@@ -56,7 +61,7 @@ export function toScenarioInstance(record: LiveScenarioRecord): ScenarioInstance
   };
 }
 
-export function toKnowledgeSpaceObject(record: LiveKnowledgeRecord): KnowledgeSpaceObject {
+export function toKnowledgeSpaceObject(record: LiveKnowledgeRecord, t: Translate = defaultTranslate): KnowledgeSpaceObject {
   return {
     id: record.id,
     mode: modeForEngine(record.ragEngine),
@@ -66,7 +71,7 @@ export function toKnowledgeSpaceObject(record: LiveKnowledgeRecord): KnowledgeSp
     linkedScenarioId: record.scenarioId,
     visibility: record.visibility,
     owner: record.ownerName,
-    permissionNote: permissionNote(record.visibility, record.ownerName),
+    permissionNote: permissionNote(record.visibility, record.ownerName, t),
     updatedAt: record.createdAt || "just now",
     actions: ["Open scenario", "View source", "Request update"]
   };
@@ -125,8 +130,8 @@ function recommendedQuestionsForScenario(record: LiveScenarioRecord) {
   ];
 }
 
-function permissionNote(visibility: Visibility, ownerName: string) {
-  if (visibility === "private") return `Only the creator ${ownerName} can see this; team and company scenarios cannot retrieve it.`;
-  if (visibility === "team") return "Visible to team members only; it does not enter the company knowledge space automatically.";
-  return "Visible company-wide; retrievable in company-wide Q&A only after an admin publishes it.";
+function permissionNote(visibility: Visibility, ownerName: string, t: Translate) {
+  if (visibility === "private") return t("knowledge.permissionNotePrivate", { name: ownerName });
+  if (visibility === "team") return t("knowledge.permissionNoteTeam");
+  return t("knowledge.permissionNoteCompany");
 }

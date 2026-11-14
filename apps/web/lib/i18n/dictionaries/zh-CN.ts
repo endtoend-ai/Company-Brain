@@ -432,6 +432,22 @@ export const zhCN: Dictionary = {
       dataOverviewTitle: "按权限范围统计知识资产",
       module: "模块",
       owner: "负责人",
+      dataScopeText: {
+        personalModule: "个人知识空间",
+        teamModule: "团队知识空间",
+        companyModule: "公司知识空间",
+        creatorOwner: "创建者",
+        teamOwner: "团队负责人",
+        adminOwner: "管理员",
+        personalPolicy: "仅创建者和管理员可读；不会进入团队或公司范围检索。",
+        teamPolicy: "仅团队成员可读；平台通过模块私有来源权限代理访问。",
+        companyPolicy: "发布后可被公司范围问答检索；管理员须确认文件与入库策略。"
+      },
+      enginePurposeText: {
+        gbrain: "将个人与团队材料编译为结构化知识页面、大纲、事实卡片，以及可直接提问的知识空间。",
+        naiveRag: "处理 PDF、Word、表格与制度文档，生成带引用的回答与评审结果。",
+        graphRag: "抽取实体、事件与关系，支撑多跳推理、客户画像与风险调查。"
+      },
       scopeVolumeAria: "{scope} 数量 {value}",
       serviceStatus: "服务状态",
       serviceStatusTitle: "三条 RAG 引擎路径",
@@ -1582,6 +1598,9 @@ export const zhCN: Dictionary = {
     source: "来源",
     access: "访问权限",
     permissionImpact: "权限影响",
+    permissionNotePrivate: "仅创建者 {name} 可见；团队和公司场景无法检索。",
+    permissionNoteTeam: "仅团队成员可见；不会自动进入公司知识空间。",
+    permissionNoteCompany: "公司范围内可见；管理员发布后可在公司范围问答中检索。",
     riskPrivate:
       "个人知识不会被团队或公司场景检索；草稿、个人文件和未发布材料都可以放在这里。",
     riskTeam:

@@ -171,10 +171,10 @@ export function AdminOverviewPage({
                     <i style={{ width: `${width}%` }} />
                   </div>
                   <dl>
-                    <div><dt>{t("admin.overview.module")}</dt><dd>{item.module}</dd></div>
-                    <div><dt>{t("admin.overview.owner")}</dt><dd>{item.owner}</dd></div>
+                    <div><dt>{t("admin.overview.module")}</dt><dd>{dataModuleText(item.module, t)}</dd></div>
+                    <div><dt>{t("admin.overview.owner")}</dt><dd>{dataOwnerText(item.owner, t)}</dd></div>
                   </dl>
-                  <p>{item.policy}</p>
+                  <p>{dataPolicyText(item.policy, t)}</p>
                 </article>
               );
             })}
@@ -190,7 +190,7 @@ export function AdminOverviewPage({
                   <b>{mode.label}</b>
                   <AdminStatusBadge status={mode.status} />
                 </div>
-                <p>{mode.purpose}</p>
+                <p>{enginePurposeText(mode.purpose, t)}</p>
                 <small>{mode.storage}</small>
               </article>
             ))}
@@ -2614,6 +2614,56 @@ const VISIBILITY_KEYS: Record<string, string> = {
 function visibilityText(scope: string, t: T) {
   const key = VISIBILITY_KEYS[scope];
   return key ? t(key) : scope;
+}
+
+const DATA_MODULE_KEYS: Record<string, string> = {
+  "Personal knowledge space": "admin.overview.dataScopeText.personalModule",
+  "Team knowledge space": "admin.overview.dataScopeText.teamModule",
+  CompanyBrain: "admin.overview.dataScopeText.companyModule"
+};
+
+const DATA_OWNER_KEYS: Record<string, string> = {
+  Creator: "admin.overview.dataScopeText.creatorOwner",
+  "Team owner": "admin.overview.dataScopeText.teamOwner",
+  Admin: "admin.overview.dataScopeText.adminOwner"
+};
+
+const DATA_POLICY_KEYS: Record<string, string> = {
+  "Readable only by the creator and admins; never enters team or company-wide recall.":
+    "admin.overview.dataScopeText.personalPolicy",
+  "Readable only by teammates; the platform proxies the module private source permission.":
+    "admin.overview.dataScopeText.teamPolicy",
+  "Recalled by company-wide Q&A after publishing; an admin must confirm the files and ingest policy.":
+    "admin.overview.dataScopeText.companyPolicy"
+};
+
+const ENGINE_PURPOSE_KEYS: Record<string, string> = {
+  "Compile personal and team material into structured knowledge pages, outlines, fact cards, and a knowledge space you can question.":
+    "admin.overview.enginePurposeText.gbrain",
+  "Process PDF, Word, spreadsheet, and policy documents to generate cited answers and review results.":
+    "admin.overview.enginePurposeText.naiveRag",
+  "Extract entities, events, and relationships to support multi-hop reasoning, customer profiles, and risk investigations.":
+    "admin.overview.enginePurposeText.graphRag"
+};
+
+function dataModuleText(value: string, t: T) {
+  const key = DATA_MODULE_KEYS[value];
+  return key ? t(key) : value;
+}
+
+function dataOwnerText(value: string, t: T) {
+  const key = DATA_OWNER_KEYS[value];
+  return key ? t(key) : value;
+}
+
+function dataPolicyText(value: string, t: T) {
+  const key = DATA_POLICY_KEYS[value];
+  return key ? t(key) : value;
+}
+
+function enginePurposeText(value: string, t: T) {
+  const key = ENGINE_PURPOSE_KEYS[value];
+  return key ? t(key) : value;
 }
 
 const HEALTH_LABEL_KEYS: Record<string, string> = {

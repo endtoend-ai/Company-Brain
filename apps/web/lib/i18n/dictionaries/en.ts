@@ -433,6 +433,28 @@ const enMessages = {
       dataOverviewTitle: "Knowledge assets by permission scope",
       module: "Module",
       owner: "Owner",
+      dataScopeText: {
+        personalModule: "Personal knowledge space",
+        teamModule: "Team knowledge space",
+        companyModule: "CompanyBrain",
+        creatorOwner: "Creator",
+        teamOwner: "Team owner",
+        adminOwner: "Admin",
+        personalPolicy:
+          "Readable only by the creator and admins; never enters team or company-wide recall.",
+        teamPolicy:
+          "Readable only by teammates; the platform proxies the module private source permission.",
+        companyPolicy:
+          "Recalled by company-wide Q&A after publishing; an admin must confirm the files and ingest policy."
+      },
+      enginePurposeText: {
+        gbrain:
+          "Compile personal and team material into structured knowledge pages, outlines, fact cards, and a knowledge space you can question.",
+        naiveRag:
+          "Process PDF, Word, spreadsheet, and policy documents to generate cited answers and review results.",
+        graphRag:
+          "Extract entities, events, and relationships to support multi-hop reasoning, customer profiles, and risk investigations."
+      },
       scopeVolumeAria: "{scope} volume {value}",
       serviceStatus: "Service status",
       serviceStatusTitle: "The three RAG engine paths",
@@ -1598,6 +1620,11 @@ const enMessages = {
     source: "Source",
     access: "Access",
     permissionImpact: "Permission impact",
+    permissionNotePrivate:
+      "Only the creator {name} can see this; team and company scenarios cannot retrieve it.",
+    permissionNoteTeam: "Visible to team members only; it does not enter the company knowledge space automatically.",
+    permissionNoteCompany:
+      "Visible company-wide; retrievable in company-wide Q&A only after an admin publishes it.",
     riskPrivate:
       "Personal knowledge is never retrieved by team or company scenarios; keep drafts, personal files, and unpublished material here.",
     riskTeam:
