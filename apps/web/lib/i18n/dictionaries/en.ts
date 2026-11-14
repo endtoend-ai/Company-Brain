@@ -44,6 +44,13 @@ const enMessages = {
     pending: "Pending",
     none: "None"
   },
+  time: {
+    justNow: "just now",
+    today: "Today",
+    yesterday: "Yesterday",
+    todayAt: "Today {time}",
+    yesterdayAt: "Yesterday {time}"
+  },
   status: {
     ready: "Ready",
     running: "Running",
@@ -438,7 +445,26 @@ const enMessages = {
       thStatus: "Status",
       thSubmitted: "Submitted",
       risksGates: "Risks and gates",
-      risksGatesTitle: "Governance signals to watch right now"
+      risksGatesTitle: "Governance signals to watch right now",
+      health: {
+        available: "Available",
+        unavailable: "Unavailable",
+        needsReview: "Needs review",
+        fetchFailed: "fetch failed",
+        fileAndAssetRecords: "{files} file requests, {assets} asset records",
+        primaryModel: "Primary model",
+        layoutRecognition: "Layout recognition",
+        dimensions: "{count} dims",
+        relationalDatabases: "Relational databases",
+        documentParsing: "Document parsing",
+        knowledgeProcessingChain: "Knowledge processing chain"
+      },
+      units: {
+        assets: "assets",
+        pages: "pages",
+        objects: "objects",
+        documents: "documents"
+      }
     },
     templates: {
       shellTitle: "Template Governance",
@@ -1359,7 +1385,22 @@ const enMessages = {
     testFailed: "Test failed",
     confirmResetPolicies: "Reset runtime policies back to their environment variables and defaults?",
     confirmResetEngines:
-      "Reset every engine retrieval parameter (TopK and citation strength threshold) to its default?"
+      "Reset every engine retrieval parameter (TopK and citation strength threshold) to its default?",
+    providerLabels: {
+      answerModel: "Answer model",
+      embeddingModel: "Embedding model",
+      rerankModel: "Rerank model",
+      pdfParserService: "PDF parser service",
+      agentModel: "Agent model"
+    },
+    providerControls: {
+      answerUsage: "Used for company-wide Q&A, Agentic RAG routing, and answer generation",
+      embeddingUsage: "Used for document chunking, graph retrieval, and company-wide recall",
+      rerankUsage: "Relevance rerank after company-wide retrieval (threshold filter + top-k)",
+      temperature: "Temperature {value}",
+      recordStreamingUsage: "Record streaming usage",
+      skipStreamingUsage: "Do not record streaming usage"
+    }
   },
   adminCuration: {
     subnavAria: "Knowledge base management",
@@ -1778,6 +1819,24 @@ const enMessages = {
       fileIntake: "File intake",
       adminReview: "Admin review",
       publishReview: "Publish review",
+      kind: {
+        fileIntake: "File intake",
+        adminReview: "Admin review",
+        knowledgeIngest: "Knowledge ingest",
+        publishReview: "Publish review"
+      },
+      waiting: {
+        you: "You",
+        admin: "Admin",
+        processingPipeline: "Processing pipeline",
+        scenarioOwner: "Scenario owner"
+      },
+      title: {
+        create: "Create {name}"
+      },
+      message: {
+        ingestConfirmed: "The admin console confirmed ingest and created a usable business scenario."
+      },
       recentlyUpdated: "Recently updated",
       submitted: "Submitted",
       progress: "Progress",
@@ -2285,6 +2344,36 @@ const enMessages = {
     guideWhatYouGet: "What you get",
     guideStartBuilding: "Start building this knowledge base",
     guideTryWorkspace: "Try the Q&A in the workspace first",
+    heroDemo: {
+      westCoast: {
+        question: "Who's working our biggest West Coast accounts this quarter?",
+        library: "Relationship knowledge base",
+        answer:
+          "Six priority accounts are in play in the West region this quarter. Acme Health is owned by Maya Chen and linked to Project Atlas plus two contracts in negotiation; Summit Manufacturing is owned by Jordan Lee and is in renewal talks.",
+        accountCitation: "Account map: Maya Chen — owns — Acme Health",
+        accountCitationMeta: "Relationship chain · open graph view",
+        callCitation: "Call notes Q1 FY26.docx",
+        callCitationMeta: "Paragraph 3 · West Coast"
+      },
+      expense: {
+        question: "Can I expense rideshare on a business trip, and what's the cap?",
+        library: "Document library",
+        answer:
+          "Yes. Under the current Travel & Expense Policy v3, local ground transport is reimbursed with receipts up to $80 per one-way trip; anything above needs manager approval.",
+        policyCitation: "Travel & Expense Policy v3, Section 4",
+        policyCitationMeta: "Ground transport · source paragraph highlighted",
+        reportCitation: "Expense report how-to.pdf",
+        reportCitationMeta: "Page 2 · approval workflow"
+      },
+      chunks: {
+        question: "How do we pick chunk size for vector retrieval?",
+        library: "Personal knowledge base",
+        answer:
+          "The team's notes give three rules: split on semantic boundaries, keep each chunk independently understandable, then backtest with real questions. You can follow up on that entry.",
+        notesCitation: "Knowledge entry: tuning retrieval quality",
+        notesCitationMeta: "Browsable · traces to 4 source files"
+      }
+    },
     heroAria:
       "Ask CompanyBrain example: a question, an answer with citations, and its sources",
     heroTitle: "Ask CompanyBrain",

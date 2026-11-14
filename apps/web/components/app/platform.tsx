@@ -380,6 +380,46 @@ function taskStatusLabelKey(task: ProcessingTask) {
   return "platform.task.processing";
 }
 
+const TASK_KIND_KEYS: Record<string, string> = {
+  "File intake": "platform.task.kind.fileIntake",
+  "Admin review": "platform.task.kind.adminReview",
+  "Knowledge ingest": "platform.task.kind.knowledgeIngest",
+  "Publish review": "platform.task.kind.publishReview"
+};
+
+const TASK_WAITING_KEYS: Record<string, string> = {
+  You: "platform.task.waiting.you",
+  Admin: "platform.task.waiting.admin",
+  "Processing pipeline": "platform.task.waiting.processingPipeline",
+  "Scenario owner": "platform.task.waiting.scenarioOwner"
+};
+
+const TASK_MESSAGE_KEYS: Record<string, string> = {
+  "The admin console confirmed ingest and created a usable business scenario.": "platform.task.message.ingestConfirmed"
+};
+
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+function taskKindText(kind: string, t: Translate) {
+  const key = TASK_KIND_KEYS[kind];
+  return key ? t(key) : kind;
+}
+
+function taskWaitingForText(waitingFor: string, t: Translate) {
+  const key = TASK_WAITING_KEYS[waitingFor];
+  return key ? t(key) : waitingFor;
+}
+
+function taskTitleText(title: string, t: Translate) {
+  const match = title.match(/^Create (.+)$/);
+  return match ? t("platform.task.title.create", { name: match[1] }) : title;
+}
+
+function taskMessageText(message: string, t: Translate) {
+  const key = TASK_MESSAGE_KEYS[message];
+  return key ? t(key) : message;
+}
+
 export function AskHome({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
   return <WorkspaceHomePage initialSnapshot={initialSnapshot} />;
 }
@@ -601,7 +641,7 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
 }
 
 export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuery?: string; initialSnapshot?: PlatformSnapshot } = {}) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   const [input, setInput] = useState("");
   const [sessions, setSessions] = useState<GlobalChatSessionSummary[]>([]);
   const [activeSession, setActiveSession] = useState<GlobalChatSession | null>(null);
@@ -623,7 +663,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
         id: session.id,
         title: session.title,
         description: session.latestMessage,
-        meta: `${t(scopeLabel(session.scope))} · ${session.updatedAtText}`,
+        meta: `${t(scopeLabel(session.scope))} · ${formatDisplayTime(session.updatedAtText)}`,
         action: () => void openSession(session.id)
       }))
     : readyScenarios.slice(0, 3).map((scenario) => ({
@@ -859,7 +899,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
                 onClick={() => void openSession(item.id)}
               >
                 <b>{item.title}</b>
-                <span>{t(scopeLabel(item.scope))} · {item.updatedAtText}</span>
+                <span>{t(scopeLabel(item.scope))} · {formatDisplayTime(item.updatedAtText)}</span>
                 <small>{item.latestMessage}</small>
               </button>
             ))}
@@ -1398,7 +1438,7 @@ export function CreateScenarioPage() {
           <h2>{t("platform.create.whatsNext")}</h2>
           <div className="create-admin-note">
             <b>{draft.task.currentStep}</b>
-            <span>{draft.task.userMessage}</span>
+            <span>{taskMessageText(draft.task.userMessage, t)}</span>
           </div>
           {scenarioLifecycle.map((stage, index) => (
             <div className="ux-stage-row" key={stage.key}>
@@ -1797,7 +1837,7 @@ export function SettingsPage({ initialSnapshot }: { initialSnapshot?: PlatformSn
           <div className="settings-audit-list">
             {recentTasks.length > 0 ? recentTasks.map((task) => (
               <Link key={task.id} href={`/app/scenarios/${task.scenarioId}/tasks`}>
-                <b>{task.title}</b>
+                <b>{taskTitleText(task.title, t)}</b>
                 <span>{task.currentStep} · {task.progress}%</span>
               </Link>
             )) : <span>{t("settings.noPendingTasks")}</span>}
@@ -1998,7 +2038,7 @@ function LiveScenarioOverview({
   knowledge: LiveKnowledgeRecord[];
   sessions: ScenarioChatSessionSummary[];
 }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   const latestTask = tasks[0];
   const ready = scenario.status === "ready";
   return (
@@ -2007,7 +2047,7 @@ function LiveScenarioOverview({
         <div className="scenario-use-copy">
           <span>{ready ? t("platform.live.availableNow") : t(statusLabel(scenario.status))}</span>
           <h2>{t(surface.workspaceTitle)}</h2>
-          <p>{ready ? t(surface.description) : latestTask?.userMessage ?? t("platform.live.publishPending")}</p>
+          <p>{ready ? t(surface.description) : latestTask ? taskMessageText(latestTask.userMessage, t) : t("platform.live.publishPending")}</p>
         </div>
         <div className="scenario-use-actions">
           <Link className="primary" href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{t(surface.primaryAction.label)}</Link>
@@ -2027,7 +2067,7 @@ function LiveScenarioOverview({
             <Link key={session.id} href={`/app/scenarios/${scenario.id}/ask?session=${session.id}`}>
               <b>{session.title}</b>
               <span>{session.latestMessage}</span>
-              <small>{session.updatedAtText} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
+              <small>{formatDisplayTime(session.updatedAtText ?? session.updatedAt)} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
             </Link>
           ))}
           {sessions.length === 0 ? (
@@ -2092,7 +2132,7 @@ function ScenarioSessionList({
   onOpen: (sessionId: string) => void;
   onNew: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   return (
     <aside className="scenario-chat-history">
       <header>
@@ -2109,7 +2149,7 @@ function ScenarioSessionList({
           >
             <b>{session.title}</b>
             <span>{session.latestMessage}</span>
-            <small>{session.updatedAtText} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
+            <small>{formatDisplayTime(session.updatedAtText ?? session.updatedAt)} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
           </button>
         ))}
         {sessions.length === 0 ? (
@@ -2330,7 +2370,7 @@ function LiveScenarioAskPanel({
 
   const fallbackText = scenario.status === "ready"
     ? t(surface.emptyState)
-    : tasks[0]?.userMessage ?? t("platform.live.processingInAdmin");
+    : tasks[0] ? taskMessageText(tasks[0].userMessage, t) : t("platform.live.processingInAdmin");
 
   return (
     <div className="scenario-chat-workspace">
@@ -2684,7 +2724,7 @@ function ScenarioWorkbenchHeader({ workbench, activeTab }: { workbench: Scenario
 }
 
 function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   const availability = scenarioAvailability(workbench.scenario);
   const primaryQuestion = workbench.scenario.recommendedQuestions[0] ?? workbench.template.demoWalkthrough.sampleQuestion;
   const primaryOutputs = workbench.outputs.slice(0, 3);
@@ -2794,7 +2834,7 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
             {primaryOutputs.map((output) => (
               <Link key={output.id} href={`/app/scenarios/${workbench.scenario.id}/outputs`}>
                 <b>{output.title.replace(`${workbench.scenario.name} · `, "")}</b>
-                <em>{output.updatedAt}</em>
+                <em>{formatDisplayTime(output.updatedAt)}</em>
               </Link>
             ))}
           </div>
@@ -2957,8 +2997,8 @@ function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbe
     <section className="ux-chat-follow-grid" aria-label={isReady ? t("platform.workbench.nextWithScenario") : t("platform.workbench.afterValidating")}>
       <article className="ux-follow-card">
         <span>{t("platform.workbench.tasksLabel")}</span>
-        <h2>{workbench.tasks[0]?.title ?? t("platform.workbench.processingScenario", { name: workbench.scenario.name })}</h2>
-        <p>{workbench.tasks[0]?.userMessage ?? t("platform.workbench.keepValidating")}</p>
+        <h2>{workbench.tasks[0] ? taskTitleText(workbench.tasks[0].title, t) : t("platform.workbench.processingScenario", { name: workbench.scenario.name })}</h2>
+        <p>{workbench.tasks[0] ? taskMessageText(workbench.tasks[0].userMessage, t) : t("platform.workbench.keepValidating")}</p>
         <Link href={`/app/scenarios/${workbench.scenario.id}/tasks`}>{t("platform.workbench.viewProcessingTasks")}</Link>
       </article>
       <article className="ux-follow-card">
@@ -2999,6 +3039,7 @@ function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbe
 }
 
 function ScenarioOutputsTab({ outputs }: { outputs: ScenarioOutput[] }) {
+  const { formatDisplayTime } = useI18n();
   return (
     <div className="ux-output-grid">
       {outputs.map((output) => (
@@ -3006,7 +3047,7 @@ function ScenarioOutputsTab({ outputs }: { outputs: ScenarioOutput[] }) {
           <span>{output.type}</span>
           <h2>{output.title}</h2>
           <p>{output.summary}</p>
-          <small>{output.status} · {output.updatedAt}</small>
+          <small>{output.status} · {formatDisplayTime(output.updatedAt)}</small>
         </article>
       ))}
     </div>
@@ -3331,7 +3372,7 @@ function ScenarioAssetRow({
   active: boolean;
   onFocus: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   const template = templateById(scenario.templateId) ?? customScenarioTemplate;
   const surface = buildScenarioProductSurface(template.id, { productForm: template.productForm });
   const availability = scenarioAvailability(scenario);
@@ -3342,7 +3383,7 @@ function ScenarioAssetRow({
         <div>
           <b>{scenario.name}</b>
           <p>{truncateText(scenario.description, 92)}</p>
-          <small>{scenario.owner} · {t("platform.chat.sourcesCount", { count: scenario.sourceCount })} ·  {scenario.updatedAt}</small>
+          <small>{scenario.owner} · {t("platform.chat.sourcesCount", { count: scenario.sourceCount })} ·  {formatDisplayTime(scenario.updatedAt)}</small>
         </div>
       </Link>
       <span className="scenario-row-surface">{t(surface.label)}</span>
@@ -3387,7 +3428,7 @@ function ScenarioAssetInspector({ scenario }: { scenario: ScenarioInstance }) {
 }
 
 function ScenarioCard({ scenario }: { scenario: ScenarioInstance }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   const template = templateById(scenario.templateId) ?? officialTemplates[0];
   const availability = scenarioAvailability(scenario);
   return (
@@ -3398,7 +3439,7 @@ function ScenarioCard({ scenario }: { scenario: ScenarioInstance }) {
       <div className="ux-card-meta">
         <small>{scenario.owner}</small>
         <small>{t("platform.chat.sourcesCount", { count: scenario.sourceCount })}</small>
-        <small>{scenario.updatedAt}</small>
+        <small>{formatDisplayTime(scenario.updatedAt)}</small>
       </div>
       <footer>
         <Link href={`/app/scenarios/${scenario.id}`}>{scenario.status === "ready" ? t("platform.scenarioRow.openScenario") : t(availability.nextAction)}</Link>
@@ -3426,20 +3467,20 @@ function ScenarioCompactCard({ scenario }: { scenario: ScenarioInstance }) {
 }
 
 function TaskCard({ task }: { task: ProcessingTask }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   return (
     <article className="ux-task-card">
       <header className="task-card-head">
         <span>{t(taskStatusLabelKey(task))}</span>
-        <small>{task.kind} · {t(ragModeLabel(task.ragMode))}</small>
+        <small>{taskKindText(task.kind, t)} · {t(ragModeLabel(task.ragMode))}</small>
       </header>
-      <h2>{task.title}</h2>
-      <p>{task.userMessage}</p>
+      <h2>{taskTitleText(task.title, t)}</h2>
+      <p>{taskMessageText(task.userMessage, t)}</p>
       <div className="task-meta-grid">
-        <div><span>{t("platform.task.waitingOn")}</span><b>{task.waitingFor}</b></div>
+        <div><span>{t("platform.task.waitingOn")}</span><b>{taskWaitingForText(task.waitingFor, t)}</b></div>
         <div><span>{t("platform.task.publishScope")}</span><b>{t(visibilityText(task.visibility))}</b></div>
         <div><span>{t("platform.task.submittedBy")}</span><b>{task.owner}</b></div>
-        <div><span>{t("platform.task.updated")}</span><b>{task.updatedAt}</b></div>
+        <div><span>{t("platform.task.updated")}</span><b>{formatDisplayTime(task.updatedAt)}</b></div>
       </div>
       <div className="task-file-row">
         {task.files.slice(0, 3).map((fileName) => <span key={fileName}>{displaySourceName(fileName)}</span>)}
@@ -3457,10 +3498,10 @@ function TaskCard({ task }: { task: ProcessingTask }) {
 function TaskMini({ task }: { task: ProcessingTask }) {
   const { t } = useI18n();
   return (
-    <Link className="ux-task-mini-row home-task-row" href={`/app/scenarios/${task.scenarioId}/tasks`} aria-label={t("platform.scenarioRow.viewTaskAria", { title: task.title })}>
+    <Link className="ux-task-mini-row home-task-row" href={`/app/scenarios/${task.scenarioId}/tasks`} aria-label={t("platform.scenarioRow.viewTaskAria", { title: taskTitleText(task.title, t) })}>
       <div className="home-row-copy">
         <div className="home-row-head">
-          <b>{task.title}</b>
+          <b>{taskTitleText(task.title, t)}</b>
           <span className={`home-scope-badge scope-${task.visibility}`}>{t(visibilityText(task.visibility))}</span>
         </div>
         <p>{task.currentStep} · {task.progress}%</p>
@@ -3471,7 +3512,7 @@ function TaskMini({ task }: { task: ProcessingTask }) {
 }
 
 function KnowledgeAssetRow({ object, active, onSelect }: { object: KnowledgeSpaceObject; active: boolean; onSelect: () => void }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   return (
     <button type="button" className={`knowledge-asset-row ${active ? "active" : ""}`} onClick={onSelect} role="listitem">
       <span className={`knowledge-type-dot type-${object.mode}`} />
@@ -3487,13 +3528,13 @@ function KnowledgeAssetRow({ object, active, onSelect }: { object: KnowledgeSpac
         <strong>{t(knowledgeVisibilityLabel(object.visibility))}</strong>
         <span>{object.owner}</span>
       </div>
-      <small>{object.updatedAt}</small>
+      <small>{formatDisplayTime(object.updatedAt)}</small>
     </button>
   );
 }
 
 function KnowledgeAssetInspector({ object }: { object: KnowledgeSpaceObject | null }) {
-  const { t } = useI18n();
+  const { t, formatDisplayTime } = useI18n();
   if (!object) {
     return (
       <aside className="knowledge-asset-inspector">
@@ -3512,7 +3553,7 @@ function KnowledgeAssetInspector({ object }: { object: KnowledgeSpaceObject | nu
         <div><dt>{t("knowledge.source")}</dt><dd>{object.sourceLabel}</dd></div>
         <div><dt>{t("common.owner")}</dt><dd>{object.owner}</dd></div>
         <div><dt>{t("knowledge.access")}</dt><dd>{t(knowledgeVisibilityLabel(object.visibility))}</dd></div>
-        <div><dt>{t("common.updated")}</dt><dd>{object.updatedAt}</dd></div>
+        <div><dt>{t("common.updated")}</dt><dd>{formatDisplayTime(object.updatedAt)}</dd></div>
       </dl>
       <div className="knowledge-inspector-note">
         <b>{t("knowledge.permissionImpact")}</b>

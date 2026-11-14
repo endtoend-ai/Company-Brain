@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import {
   formatDate as formatDateWith,
+  formatDisplayTime as formatDisplayTimeWith,
   formatNumber as formatNumberWith,
   formatRelativeTime as formatRelativeTimeWith,
   getDictionary,
@@ -27,6 +28,7 @@ export type I18nValue = {
   formatDate: (value: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatNumber: (value: number, options?: Intl.NumberFormatOptions) => string;
   formatRelativeTime: (value: Date | string | number, now?: Date | number) => string;
+  formatDisplayTime: (value: Date | string | number, now?: Date | number) => string;
 };
 
 function buildValue(locale: Locale, setLocale: (next: Locale) => void): I18nValue {
@@ -38,7 +40,8 @@ function buildValue(locale: Locale, setLocale: (next: Locale) => void): I18nValu
     t: (key, vars) => translate(dictionary, key, vars),
     formatDate: (value, options) => formatDateWith(locale, value, options),
     formatNumber: (value, options) => formatNumberWith(locale, value, options),
-    formatRelativeTime: (value, now) => formatRelativeTimeWith(locale, value, now)
+    formatRelativeTime: (value, now) => formatRelativeTimeWith(locale, value, now),
+    formatDisplayTime: (value, now) => formatDisplayTimeWith(locale, value, now)
   };
 }
 

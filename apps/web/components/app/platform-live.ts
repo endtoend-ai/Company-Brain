@@ -50,7 +50,7 @@ export function toScenarioInstance(record: LiveScenarioRecord): ScenarioInstance
     visibility: record.visibility,
     status: record.status,
     sourceCount: record.sourceCount,
-    updatedAt: displayTime(record.updatedAt),
+    updatedAt: record.updatedAt || "just now",
     readyActions: actionsForScenarioStatus(record.status),
     recommendedQuestions: recommendedQuestionsForScenario(record)
   };
@@ -67,7 +67,7 @@ export function toKnowledgeSpaceObject(record: LiveKnowledgeRecord): KnowledgeSp
     visibility: record.visibility,
     owner: record.ownerName,
     permissionNote: permissionNote(record.visibility, record.ownerName),
-    updatedAt: displayTime(record.createdAt),
+    updatedAt: record.createdAt || "just now",
     actions: ["Open scenario", "View source", "Request update"]
   };
 }
@@ -129,15 +129,4 @@ function permissionNote(visibility: Visibility, ownerName: string) {
   if (visibility === "private") return `Only the creator ${ownerName} can see this; team and company scenarios cannot retrieve it.`;
   if (visibility === "team") return "Visible to team members only; it does not enter the company knowledge space automatically.";
   return "Visible company-wide; retrievable in company-wide Q&A only after an admin publishes it.";
-}
-
-function displayTime(value: string) {
-  const time = new Date(value).getTime();
-  if (!Number.isFinite(time)) return value || "just now";
-  const minutes = Math.floor((Date.now() - time) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }

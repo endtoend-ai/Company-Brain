@@ -7,6 +7,36 @@ import { useI18n } from "../../lib/i18n/language-context";
 
 type FetchState = "loading" | "ready" | "fallback";
 
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+const SETTINGS_LABEL_KEYS: Record<string, string> = {
+  "Answer model": "adminSettings.providerLabels.answerModel",
+  "Embedding model": "adminSettings.providerLabels.embeddingModel",
+  "Rerank model": "adminSettings.providerLabels.rerankModel",
+  "PDF parser service": "adminSettings.providerLabels.pdfParserService",
+  "Agent model": "adminSettings.providerLabels.agentModel"
+};
+
+const SETTINGS_CONTROL_KEYS: Record<string, string> = {
+  "Used for company-wide Q&A, Agentic RAG routing, and answer generation": "adminSettings.providerControls.answerUsage",
+  "Used for document chunking, graph retrieval, and company-wide recall": "adminSettings.providerControls.embeddingUsage",
+  "Relevance rerank after company-wide retrieval (threshold filter + top-k)": "adminSettings.providerControls.rerankUsage",
+  "Record streaming usage": "adminSettings.providerControls.recordStreamingUsage",
+  "Do not record streaming usage": "adminSettings.providerControls.skipStreamingUsage"
+};
+
+function settingsLabelText(label: string, t: Translate) {
+  const key = SETTINGS_LABEL_KEYS[label];
+  return key ? t(key) : label;
+}
+
+function settingsControlText(control: string, t: Translate) {
+  const key = SETTINGS_CONTROL_KEYS[control];
+  if (key) return t(key);
+  const temperature = control.match(/^Temperature (.+)$/);
+  return temperature ? t("adminSettings.providerControls.temperature", { value: temperature[1] }) : control;
+}
+
 export function AdminSettingsPage({ initialSettings }: { initialSettings?: AdminIntegrationSettings }) {
   const { t, formatDate } = useI18n();
   const [settings, setSettings] = useState<AdminIntegrationSettings>(initialSettings ?? adminIntegrationSettings);
@@ -294,7 +324,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
           {[...settings.providers, ...settings.parsers].flatMap((item) => item.secrets.map((secret) => (
             <article key={`${item.id}-${secret.env_name}`} className="settings-secret-row">
               <b>{secret.env_name}</b>
-              <span>{item.label}</span>
+              <span>{settingsLabelText(item.label, t)}</span>
               <em>{secret.configured ? t("adminSettings.configured") : t("adminSettings.notConfigured")}</em>
               <small>{secret.fingerprint ?? t("adminSettings.noFingerprint")}</small>
             </article>
@@ -313,7 +343,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
               <header>
                 <div>
                   <span>{provider.provider}</span>
-                  <h3>{provider.label}</h3>
+                  <h3>{settingsLabelText(provider.label, t)}</h3>
                 </div>
                 <SecretBadge configured={provider.secrets.every((item) => item.configured)} />
               </header>
@@ -323,7 +353,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                 {provider.dimensions ? <div><dt>{t("adminSettings.vectorDimensions")}</dt><dd>{provider.dimensions}</dd></div> : null}
                 {provider.secrets.map((secret) => <div key={secret.env_name}><dt>{secret.env_name}</dt><dd>{secret.configured ? t("adminSettings.configuredFingerprint", { fingerprint: secret.fingerprint ?? "" }) : t("adminSettings.notConfigured")}</dd></div>)}
               </dl>
-              <div className="admin-pills">{provider.controls.map((item) => <span key={item}>{item}</span>)}</div>
+              <div className="admin-pills">{provider.controls.map((item) => <span key={item}>{settingsControlText(item, t)}</span>)}</div>
               <TestConnectionControl target={provider.id} test={tests[provider.id]} onTest={testConnection} />
             </article>
           ))}
@@ -341,7 +371,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
               <header>
                 <div>
                   <span>{parser.base_url ?? "Not configured"}</span>
-                  <h3>{parser.label}</h3>
+                  <h3>{settingsLabelText(parser.label, t)}</h3>
                 </div>
                 <SecretBadge configured={parser.secrets.every((item) => item.configured)} />
               </header>

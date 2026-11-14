@@ -91,4 +91,74 @@ export function formatRelativeTime(
   return formatter.format(0, "second");
 }
 
+type DisplayTimeLabel =
+  | { kind: "relative"; amount: number; unit: "minute" | "hour" | "day"; source: string }
+  | { kind: "justNow"; source: string }
+  | { kind: "today"; time?: string; source: string }
+  | { kind: "yesterday"; time?: string; source: string };
+
+function parseDisplayTimeLabel(value: string): DisplayTimeLabel | null {
+  const source = value.trim();
+  if (source === "just now") return { kind: "justNow", source };
+  const relative = source.match(/^(\d+)\s+(min|hr|hour|hours|day|days)\s+ago$/i);
+  if (relative) {
+    const amount = Number(relative[1]);
+    const rawUnit = relative[2].toLowerCase();
+    const unit = rawUnit === "min" ? "minute" : rawUnit === "hr" || rawUnit === "hour" || rawUnit === "hours" ? "hour" : "day";
+    return { kind: "relative", amount, unit, source };
+  }
+  const today = source.match(/^Today(?:\s+(\d{1,2}:\d{2}))?$/);
+  if (today) return { kind: "today", time: today[1], source };
+  const yesterday = source.match(/^Yesterday(?:\s+(\d{1,2}:\d{2}))?$/);
+  if (yesterday) return { kind: "yesterday", time: yesterday[1], source };
+  return null;
+}
+
+/**
+ * Formats timestamps and legacy relative strings for display. English keeps the
+ * stored strings unchanged; Chinese renders relative labels through Intl.
+ */
+export function formatDisplayTime(
+  locale: unknown,
+  value: Date | string | number,
+  now: Date | number = Date.now()
+): string {
+  const normalized = normalizeLocale(locale);
+  const nowMs = now instanceof Date ? now.getTime() : now;
+
+  if (typeof value === "string") {
+    const label = parseDisplayTimeLabel(value);
+    if (label) {
+      if (normalized === "en") return label.source;
+      if (label.kind === "justNow") return translate(getDictionary(locale), "time.justNow");
+      if (label.kind === "today") {
+        return label.time
+          ? translate(getDictionary(locale), "time.todayAt", { time: label.time })
+          : translate(getDictionary(locale), "time.today");
+      }
+      if (label.kind === "yesterday") {
+        return label.time
+          ? translate(getDictionary(locale), "time.yesterdayAt", { time: label.time })
+          : translate(getDictionary(locale), "time.yesterday");
+      }
+      const ms = label.unit === "minute" ? 60 * 1000 : label.unit === "hour" ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+      return formatRelativeTime(locale, new Date(nowMs - label.amount * ms), nowMs);
+    }
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return typeof value === "string" ? value : "";
+  const minutes = Math.floor((nowMs - date.getTime()) / 60000);
+  if (normalized === "en") {
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr ago`;
+    return formatDate(locale, date);
+  }
+  if (minutes < 1) return translate(getDictionary(locale), "time.justNow");
+  if (minutes < 24 * 60) return formatRelativeTime(locale, date, nowMs);
+  return formatDate(locale, date);
+}
+
 export { en };

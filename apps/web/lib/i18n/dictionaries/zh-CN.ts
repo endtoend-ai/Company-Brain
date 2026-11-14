@@ -46,6 +46,13 @@ export const zhCN: Dictionary = {
     pending: "待处理",
     none: "无"
   },
+  time: {
+    justNow: "刚刚",
+    today: "今天",
+    yesterday: "昨天",
+    todayAt: "今天 {time}",
+    yesterdayAt: "昨天 {time}"
+  },
   status: {
     ready: "就绪",
     running: "运行中",
@@ -437,7 +444,26 @@ export const zhCN: Dictionary = {
       thStatus: "状态",
       thSubmitted: "提交时间",
       risksGates: "风险与门槛",
-      risksGatesTitle: "当前需要关注的治理信号"
+      risksGatesTitle: "当前需要关注的治理信号",
+      health: {
+        available: "可用",
+        unavailable: "不可用",
+        needsReview: "需复核",
+        fetchFailed: "获取失败",
+        fileAndAssetRecords: "{files} 个文件请求，{assets} 条资产记录",
+        primaryModel: "主模型",
+        layoutRecognition: "版面识别",
+        dimensions: "{count} 维",
+        relationalDatabases: "关系型数据库",
+        documentParsing: "文档解析",
+        knowledgeProcessingChain: "知识处理链"
+      },
+      units: {
+        assets: "项资产",
+        pages: "页",
+        objects: "个对象",
+        documents: "份文档"
+      }
     },
     templates: {
       shellTitle: "模板治理",
@@ -1346,7 +1372,22 @@ export const zhCN: Dictionary = {
     resetFailed: "重置失败",
     testFailed: "测试失败",
     confirmResetPolicies: "把运行时策略重置为环境变量与默认值？",
-    confirmResetEngines: "把每个引擎的检索参数（TopK 与引用强度阈值）重置为默认值？"
+    confirmResetEngines: "把每个引擎的检索参数（TopK 与引用强度阈值）重置为默认值？",
+    providerLabels: {
+      answerModel: "回答模型",
+      embeddingModel: "嵌入模型",
+      rerankModel: "重排模型",
+      pdfParserService: "PDF 解析服务",
+      agentModel: "Agent 模型"
+    },
+    providerControls: {
+      answerUsage: "用于公司级问答、Agentic RAG 路由与回答生成",
+      embeddingUsage: "用于文档分块、图谱检索与公司级召回",
+      rerankUsage: "公司级检索后的相关性重排（阈值过滤 + top-k）",
+      temperature: "温度 {value}",
+      recordStreamingUsage: "记录流式用量",
+      skipStreamingUsage: "不记录流式用量"
+    }
   },
   adminCuration: {
     subnavAria: "知识库管理",
@@ -1750,6 +1791,24 @@ export const zhCN: Dictionary = {
       fileIntake: "文件接入",
       adminReview: "管理员审核",
       publishReview: "发布审核",
+      kind: {
+        fileIntake: "文件接入",
+        adminReview: "管理员审核",
+        knowledgeIngest: "知识入库",
+        publishReview: "发布审核"
+      },
+      waiting: {
+        you: "你",
+        admin: "管理员",
+        processingPipeline: "处理管线",
+        scenarioOwner: "场景负责人"
+      },
+      title: {
+        create: "创建 {name}"
+      },
+      message: {
+        ingestConfirmed: "管理控制台已确认入库，并创建了可用的业务场景。"
+      },
       recentlyUpdated: "最近更新",
       submitted: "提交时间",
       progress: "进度",
@@ -2243,6 +2302,36 @@ export const zhCN: Dictionary = {
     guideWhatYouGet: "你将获得",
     guideStartBuilding: "开始构建这个知识库",
     guideTryWorkspace: "先在工作空间试试问答",
+    heroDemo: {
+      westCoast: {
+        question: "本季度谁在负责我们最大的西海岸客户？",
+        library: "关系知识库",
+        answer:
+          "本季度西海岸区域有六个重点客户正在推进。Acme Health 由 Maya Chen 负责，关联 Project Atlas 以及两个正在谈判的合同；Summit Manufacturing 由 Jordan Lee 负责，正在进行续约谈判。",
+        accountCitation: "客户关系图：Maya Chen — 负责 — Acme Health",
+        accountCitationMeta: "关系链 · 打开图谱视图",
+        callCitation: "Call notes Q1 FY26.docx",
+        callCitationMeta: "第 3 段 · 西海岸"
+      },
+      expense: {
+        question: "出差时可以报销网约车吗？上限是多少？",
+        library: "文档库",
+        answer:
+          "可以。根据现行的 Travel & Expense Policy v3，本地地面交通凭收据报销，单程上限为 $80；超过部分需要经理审批。",
+        policyCitation: "Travel & Expense Policy v3，第 4 节",
+        policyCitationMeta: "地面交通 · 已高亮来源段落",
+        reportCitation: "Expense report how-to.pdf",
+        reportCitationMeta: "第 2 页 · 审批流程"
+      },
+      chunks: {
+        question: "我们如何为向量检索选择分块大小？",
+        library: "个人知识库",
+        answer:
+          "团队笔记给出三条规则：按语义边界切分，保证每个分块可独立理解，再用真实问题回测。你可以继续追问这条条目。",
+        notesCitation: "知识条目：调优检索质量",
+        notesCitationMeta: "可浏览 · 追溯至 4 个来源文件"
+      }
+    },
     heroAria: "向 CompanyBrain 提问示例：一个问题、带引用的回答及其来源",
     heroTitle: "向 CompanyBrain 提问",
     heroLive: "实时检索",

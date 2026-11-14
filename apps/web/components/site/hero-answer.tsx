@@ -13,35 +13,32 @@ type Demo = {
 
 const demos: Demo[] = [
   {
-    q: "Who's working our biggest West Coast accounts this quarter?",
-    lib: "Relationship knowledge base",
+    q: "siteDemo.heroDemo.westCoast.question",
+    lib: "siteDemo.heroDemo.westCoast.library",
     libColor: "var(--c-relation)",
-    answer:
-      "Six priority accounts are in play in the West region this quarter. Acme Health is owned by Maya Chen and linked to Project Atlas plus two contracts in negotiation; Summit Manufacturing is owned by Jordan Lee and is in renewal talks.",
+    answer: "siteDemo.heroDemo.westCoast.answer",
     cites: [
-      { title: "Account map: Maya Chen — owns — Acme Health", meta: "Relationship chain · open graph view" },
-      { title: "Call notes Q1 FY26.docx", meta: "Paragraph 3 · West Coast" }
+      { title: "siteDemo.heroDemo.westCoast.accountCitation", meta: "siteDemo.heroDemo.westCoast.accountCitationMeta" },
+      { title: "siteDemo.heroDemo.westCoast.callCitation", meta: "siteDemo.heroDemo.westCoast.callCitationMeta" }
     ]
   },
   {
-    q: "Can I expense rideshare on a business trip, and what's the cap?",
-    lib: "Document library",
+    q: "siteDemo.heroDemo.expense.question",
+    lib: "siteDemo.heroDemo.expense.library",
     libColor: "var(--c-document)",
-    answer:
-      "Yes. Under the current Travel & Expense Policy v3, local ground transport is reimbursed with receipts up to $80 per one-way trip; anything above needs manager approval.",
+    answer: "siteDemo.heroDemo.expense.answer",
     cites: [
-      { title: "Travel & Expense Policy v3, Section 4", meta: "Ground transport · source paragraph highlighted" },
-      { title: "Expense report how-to.pdf", meta: "Page 2 · approval workflow" }
+      { title: "siteDemo.heroDemo.expense.policyCitation", meta: "siteDemo.heroDemo.expense.policyCitationMeta" },
+      { title: "siteDemo.heroDemo.expense.reportCitation", meta: "siteDemo.heroDemo.expense.reportCitationMeta" }
     ]
   },
   {
-    q: "How do we pick chunk size for vector retrieval?",
-    lib: "Personal knowledge base",
+    q: "siteDemo.heroDemo.chunks.question",
+    lib: "siteDemo.heroDemo.chunks.library",
     libColor: "var(--c-personal)",
-    answer:
-      "The team's notes give three rules: split on semantic boundaries, keep each chunk independently understandable, then backtest with real questions. You can follow up on that entry.",
+    answer: "siteDemo.heroDemo.chunks.answer",
     cites: [
-      { title: "Knowledge entry: tuning retrieval quality", meta: "Browsable · traces to 4 source files" }
+      { title: "siteDemo.heroDemo.chunks.notesCitation", meta: "siteDemo.heroDemo.chunks.notesCitationMeta" }
     ]
   }
 ];
@@ -80,7 +77,7 @@ export function HeroAnswer() {
         <div className="hero-q">
           <span className="hero-q-avatar">Q</span>
           <p key={"q" + i} className="hero-q-text">
-            {d.q}
+            {t(d.q)}
           </p>
         </div>
 
@@ -101,10 +98,10 @@ export function HeroAnswer() {
                 className="hero-a-lib"
                 style={{ color: d.libColor, borderColor: d.libColor }}
               >
-                {t("siteDemo.heroMatched", { library: d.lib })}
+                {t("siteDemo.heroMatched", { library: t(d.lib) })}
               </span>
             </div>
-            <p className="hero-a-text">{d.answer}</p>
+            <p className="hero-a-text">{t(d.answer)}</p>
             <div className="hero-cites">
               <span className="hero-cites-label">{d.cites.length} {d.cites.length === 1 ? t("siteDemo.heroCitation") : t("siteDemo.heroCitations")}</span>
               {d.cites.map((c, k) => (
@@ -114,8 +111,8 @@ export function HeroAnswer() {
                     <path d="M14 2v6h6" />
                   </svg>
                   <div>
-                    <strong>{c.title}</strong>
-                    <span>{c.meta}</span>
+                    <strong>{t(c.title)}</strong>
+                    <span>{t(c.meta)}</span>
                   </div>
                   <span className="hero-cite-open">{t("siteDemo.heroOpen")}</span>
                 </div>

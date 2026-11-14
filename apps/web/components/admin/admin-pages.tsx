@@ -136,9 +136,9 @@ export function AdminOverviewPage({
       <section className="admin-health-strip" aria-label={t("admin.overview.serviceHealthAria")}>
         {healthCards.map((item) => (
           <Link href={item.route} key={item.id} className="admin-health-card">
-            <span>{item.label}</span>
-            <b>{item.value}</b>
-            <small>{item.detail}</small>
+            <span>{healthCardLabelText(item.label, t)}</span>
+            <b>{healthCardValueText(item.value, t)}</b>
+            <small>{healthCardDetailText(item.detail, t)}</small>
             <AdminStatusBadge status={item.status} />
           </Link>
         ))}
@@ -166,8 +166,8 @@ export function AdminOverviewPage({
                     <span>{visibilityText(item.scope, t)}</span>
                     <AdminStatusBadge status={item.health} />
                   </header>
-                  <strong>{formatNumber(item.total)} <small>{item.unit}</small></strong>
-                  <div className="admin-scope-meter" aria-label={t("admin.overview.scopeVolumeAria", { scope: visibilityText(item.scope, t), value: `${formatNumber(item.total)}${item.unit}` })}>
+                  <strong>{formatNumber(item.total)} <small>{unitText(item.unit, t)}</small></strong>
+                  <div className="admin-scope-meter" aria-label={t("admin.overview.scopeVolumeAria", { scope: visibilityText(item.scope, t), value: `${formatNumber(item.total)}${unitText(item.unit, t)}` })}>
                     <i style={{ width: `${width}%` }} />
                   </div>
                   <dl>
@@ -2614,6 +2614,55 @@ const VISIBILITY_KEYS: Record<string, string> = {
 function visibilityText(scope: string, t: T) {
   const key = VISIBILITY_KEYS[scope];
   return key ? t(key) : scope;
+}
+
+const HEALTH_LABEL_KEYS: Record<string, string> = {
+  "Relational databases": "admin.overview.health.relationalDatabases",
+  "Answer model": "adminSettings.providerLabels.answerModel",
+  "Embedding model": "adminSettings.providerLabels.embeddingModel",
+  "Document parsing": "admin.overview.health.documentParsing",
+  "Knowledge processing chain": "admin.overview.health.knowledgeProcessingChain"
+};
+
+const HEALTH_VALUE_KEYS: Record<string, string> = {
+  Available: "admin.overview.health.available",
+  Unavailable: "admin.overview.health.unavailable",
+  "Needs review": "admin.overview.health.needsReview",
+  "Primary model": "admin.overview.health.primaryModel",
+  "Layout recognition": "admin.overview.health.layoutRecognition",
+  "Not configured": "adminSettings.notConfigured"
+};
+
+const UNIT_KEYS: Record<string, string> = {
+  assets: "admin.overview.units.assets",
+  pages: "admin.overview.units.pages",
+  objects: "admin.overview.units.objects",
+  documents: "admin.overview.units.documents"
+};
+
+function healthCardLabelText(label: string, t: T) {
+  const key = HEALTH_LABEL_KEYS[label];
+  return key ? t(key) : label;
+}
+
+function healthCardValueText(value: string, t: T) {
+  const key = HEALTH_VALUE_KEYS[value];
+  if (key) return t(key);
+  const dimensions = value.match(/^(\d+)\s+dims$/);
+  return dimensions ? t("admin.overview.health.dimensions", { count: dimensions[1] }) : value;
+}
+
+function healthCardDetailText(detail: string, t: T) {
+  if (detail === "fetch failed") return t("admin.overview.health.fetchFailed");
+  const counts = detail.match(/^(\d+)\s+file requests,\s+(\d+)\s+asset records$/);
+  return counts
+    ? t("admin.overview.health.fileAndAssetRecords", { files: counts[1], assets: counts[2] })
+    : detail;
+}
+
+function unitText(unit: string, t: T) {
+  const key = UNIT_KEYS[unit];
+  return key ? t(key) : unit;
 }
 
 const ACTION_KEYS: Record<string, string> = {
