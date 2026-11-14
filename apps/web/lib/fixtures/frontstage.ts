@@ -127,7 +127,7 @@ export type ScenarioWorkbenchTab = {
 };
 
 export type ScenarioAvailability = {
-  label: "Awaiting files" | "Pending ingest" | "Processing" | "Pending review" | "Ready" | "Failed";
+  label: string;
   description: string;
   nextAction: string;
 };
@@ -202,29 +202,29 @@ export const workspaceNav: WorkspaceNavItem[] = [
 ];
 
 export const scenarioLifecycle: ScenarioLifecycleStage[] = [
-  { key: "template", label: "Pick a template", description: "Confirm the business goal, input materials, and output shape." },
-  { key: "sources", label: "Add files", description: "Upload files or pick an existing data source to form a processable pack." },
-  { key: "processing", label: "Process and ingest", description: "Parse, chunk, index, build relationships, and run quality checks." },
-  { key: "validation", label: "Validate", description: "Test answers, citations, refusals, and boundaries with real business questions." },
-  { key: "published", label: "Publish", description: "Open it to a person, a team, or the company, and keep watching results." }
+  { key: "template", label: "platform.lifecycle.templateLabel", description: "platform.lifecycle.templateDescription" },
+  { key: "sources", label: "platform.lifecycle.sourcesLabel", description: "platform.lifecycle.sourcesDescription" },
+  { key: "processing", label: "platform.lifecycle.processingLabel", description: "platform.lifecycle.processingDescription" },
+  { key: "validation", label: "platform.lifecycle.validationLabel", description: "platform.lifecycle.validationDescription" },
+  { key: "published", label: "platform.lifecycle.publishedLabel", description: "platform.lifecycle.publishedDescription" }
 ];
 
 export const scenarioWorkbenchTabs: ScenarioWorkbenchTab[] = [
-  { key: "overview", label: "Overview", href: "" },
-  { key: "data", label: "Data sources", href: "/data" },
-  { key: "tasks", label: "Processing tasks", href: "/tasks" },
-  { key: "ask", label: "Q&A validation", href: "/ask" },
-  { key: "outputs", label: "Outputs", href: "/outputs" },
-  { key: "settings", label: "Settings", href: "/settings" }
+  { key: "overview", label: "platform.tab.overview", href: "" },
+  { key: "data", label: "platform.tab.dataSources", href: "/data" },
+  { key: "tasks", label: "platform.tab.processingTasks", href: "/tasks" },
+  { key: "ask", label: "platform.tab.qaValidation", href: "/ask" },
+  { key: "outputs", label: "platform.tab.outputs", href: "/outputs" },
+  { key: "settings", label: "platform.tab.settings", href: "/settings" }
 ];
 
 export const readyScenarioWorkbenchTabs: ScenarioWorkbenchTab[] = [
-  { key: "overview", label: "Use", href: "" },
-  { key: "data", label: "Files", href: "/data" },
-  { key: "tasks", label: "Business tasks", href: "/tasks" },
-  { key: "ask", label: "Q&A", href: "/ask" },
-  { key: "outputs", label: "Deliverables", href: "/outputs" },
-  { key: "settings", label: "Manage", href: "/settings" }
+  { key: "overview", label: "platform.tab.use", href: "" },
+  { key: "data", label: "platform.tab.files", href: "/data" },
+  { key: "tasks", label: "platform.tab.businessTasks", href: "/tasks" },
+  { key: "ask", label: "platform.tab.qa", href: "/ask" },
+  { key: "outputs", label: "platform.tab.deliverables", href: "/outputs" },
+  { key: "settings", label: "platform.tab.manage", href: "/settings" }
 ];
 
 export const productDataForbiddenWords = [
@@ -507,43 +507,43 @@ export function scenarioById(id: string): ScenarioInstance | undefined {
 export function scenarioAvailability(scenario: ScenarioInstance): ScenarioAvailability {
   if (scenario.status === "ready") {
     return {
-      label: "Ready",
-      description: "Ingest, knowledge construction, and publishing are complete, so this account can use the scenario now.",
-      nextAction: "Use the scenario"
+      label: "platform.status.ready",
+      description: "platform.availability.readyDescription",
+      nextAction: "platform.availability.readyNextAction"
     };
   }
   if (scenario.status === "processing") {
     return {
-      label: "Processing",
-      description: "Files are submitted; the admin console is parsing, ingesting, indexing, and building knowledge objects.",
-      nextAction: "View processing progress"
+      label: "platform.status.processing",
+      description: "platform.availability.processingDescription",
+      nextAction: "platform.availability.processingNextAction"
     };
   }
   if (scenario.status === "waiting_review") {
     return {
-      label: "Pending review",
-      description: "Knowledge construction is done; an admin reviews it before it is published to the current scope.",
-      nextAction: "View review requirements"
+      label: "platform.status.pendingReview",
+      description: "platform.availability.pendingReviewDescription",
+      nextAction: "platform.availability.pendingReviewNextAction"
     };
   }
   if (scenario.status === "submitted") {
     return {
-      label: "Pending ingest",
-      description: "Files are submitted; waiting for the admin console to start processing or confirm the entry configuration.",
-      nextAction: "View submission record"
+      label: "platform.status.pendingIngest",
+      description: "platform.availability.submittedDescription",
+      nextAction: "platform.availability.submittedNextAction"
     };
   }
   if (scenario.status === "failed") {
     return {
-      label: "Failed",
-      description: "Processing did not finish; add more material or start processing again.",
-      nextAction: "View the failure reason"
+      label: "platform.status.failed",
+      description: "platform.availability.failedDescription",
+      nextAction: "platform.availability.failedNextAction"
     };
   }
   return {
-    label: "Awaiting files",
-    description: "The scenario exists but there is no processable file pack yet.",
-    nextAction: "Add files"
+    label: "platform.status.awaitingFiles",
+    description: "platform.availability.awaitingFilesDescription",
+    nextAction: "platform.availability.awaitingFilesNextAction"
   };
 }
 

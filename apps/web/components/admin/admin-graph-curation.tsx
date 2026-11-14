@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AdminShell, AdminPageHead, PanelHead } from "./admin-pages";
 import { ConfirmDialog } from "./admin-confirm-dialog";
 import type { GraphCurationSource, GraphCurationDetail } from "../../lib/server/platform-store";
+import { useI18n } from "../../lib/i18n/language-context";
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`/api/platform/${path}`, { headers: { "content-type": "application/json" }, ...init });
@@ -14,6 +15,7 @@ async function api(path: string, init?: RequestInit) {
 }
 
 export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCurationSource[] }) {
+  const { t } = useI18n();
   const [activeSource, setActiveSource] = useState<string>(sources[0]?.sourceId ?? "");
   const [detail, setDetail] = useState<GraphCurationDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
       setDetail(d);
       setSelected([]);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Failed to load");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.failedToLoad"));
       setDetail(null);
     } finally {
       setLoading(false);
@@ -53,17 +55,17 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
   const doMerge = async () => {
     const target = mergeTarget.trim() || selected[0];
     if (selected.length < 2 || !target) {
-      setNotice("Select at least 2 entities to merge and give the merged entity a name.");
+      setNotice(t("adminCuration.mergeSelectNotice"));
       return;
     }
-    setNotice("Merging entities (rewrites the LightRAG graph)…");
+    setNotice(t("adminCuration.mergingEntities"));
     try {
       const r = await api("admin/graph-curation/merge", { method: "POST", body: JSON.stringify({ sourceId: activeSource, sourceEntities: selected, targetEntity: target }) });
-      setNotice(r.message || "Merged");
+      setNotice(r.message || t("adminCuration.merged"));
       setMergeTarget("");
       await loadDetail(activeSource, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Merge failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.mergeFailed"));
     }
   };
 
@@ -76,54 +78,54 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
 
   const saveEdit = async () => {
     if (!editing) return;
-    setNotice("Saving entity (rewrites the LightRAG graph)…");
+    setNotice(t("adminCuration.savingEntity"));
     try {
       const r = await api("admin/graph-curation/entity/edit", { method: "POST", body: JSON.stringify({ sourceId: activeSource, entityName: editing, newName: editName, entityType: editType, description: editDesc }) });
-      setNotice(r.message || "Saved");
+      setNotice(r.message || t("adminCuration.saved"));
       setEditing(null);
       await loadDetail(activeSource, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Save failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.saveFailed"));
     }
   };
 
   const deleteEntity = async (name: string) => {
-    setNotice(`Deleting entity "${name}"…`);
+    setNotice(t("adminCuration.deletingEntity", { name }));
     try {
       const r = await api("admin/graph-curation/entity/delete", { method: "POST", body: JSON.stringify({ sourceId: activeSource, entityName: name }) });
-      setNotice(r.message || "Deleted");
+      setNotice(r.message || t("adminCuration.deleted"));
       await loadDetail(activeSource, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Delete failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.deleteFailed"));
     }
   };
 
   const deleteRelation = async (src: string, target: string) => {
-    setNotice(`Deleting relationship "${src} → ${target}"…`);
+    setNotice(t("adminCuration.deletingRelationship", { source: src, target }));
     try {
       const r = await api("admin/graph-curation/relation/delete", { method: "POST", body: JSON.stringify({ sourceId: activeSource, sourceEntity: src, targetEntity: target }) });
-      setNotice(r.message || "Relationship deleted");
+      setNotice(r.message || t("adminCuration.relationshipDeleted"));
       await loadDetail(activeSource, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Delete failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.deleteFailed"));
     }
   };
 
   return (
-    <AdminShell active="/admin/graph" title="Knowledge Graph">
+    <AdminShell active="/admin/graph" title={t("adminCuration.graphShellTitle")}>
       <AdminPageHead
-        eyebrow="Knowledge graph · editable workbench"
-        title="Add, edit, and delete entities and relationships in the knowledge graph"
-        description="Entities and relationships extracted by GraphRAG can be duplicated, fragmented, or mislinked. Merge duplicates, rename or retype entities, fill in descriptions, and delete noisy entities or wrong relationships here — every change rewrites the LightRAG graph store, so answers reflect it immediately."
+        eyebrow={t("adminCuration.graphEyebrow")}
+        title={t("adminCuration.graphTitle")}
+        description={t("adminCuration.graphDescription")}
       />
       {notice ? <p className="admin-console-notice" role="status">{notice}</p> : null}
 
       {sources.length === 0 ? (
-        <section className="admin-panel"><p className="monitoring-empty">No GraphRAG graph sources have been ingested yet. Upload graph-type material in a scenario and finish ingestion first.</p></section>
+        <section className="admin-panel"><p className="monitoring-empty">{t("adminCuration.noGraphSources")}</p></section>
       ) : (
         <>
           <section className="admin-panel">
-            <PanelHead eyebrow="Select graph source" title="Pick the graph to curate by knowledge base or scenario" />
+            <PanelHead eyebrow={t("adminCuration.selectGraphSource")} title={t("adminCuration.pickGraphToCurate")} />
             <div className="curation-source-tabs">
               {sources.map((s) => (
                 <button key={s.sourceId} type="button" className={s.sourceId === activeSource ? "active" : ""} onClick={() => setActiveSource(s.sourceId)}>
@@ -132,13 +134,13 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
               ))}
             </div>
             {detail ? (
-              <p className="curation-meta">Entities <b>{detail.entityCount}</b> · Relationships <b>{detail.relationCount}</b>{detail.duplicateNames.length ? <> · Possible duplicates <b className="curation-dup-count">{detail.duplicateNames.length}</b></> : null}</p>
+              <p className="curation-meta">{t("adminCuration.entities")} <b>{detail.entityCount}</b> · {t("adminCuration.relationships")} <b>{detail.relationCount}</b>{detail.duplicateNames.length ? <> · {t("adminCuration.possibleDuplicates")} <b className="curation-dup-count">{detail.duplicateNames.length}</b></> : null}</p>
             ) : null}
           </section>
 
           {detail && detail.duplicateNames.length > 0 ? (
             <section className="admin-panel">
-              <PanelHead eyebrow="Deduplication hints" title="Possible duplicate entities (select same-name entities below, then merge)" />
+              <PanelHead eyebrow={t("adminCuration.deduplicationHints")} title={t("adminCuration.deduplicationHintsTitle")} />
               <div className="curation-dup-chips">
                 {detail.duplicateNames.map((d) => <span key={d}>{d}</span>)}
               </div>
@@ -148,28 +150,28 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
           {/* Merge action bar */}
           <section className="admin-panel curation-merge-bar">
             <div>
-              <b>{selected.length} entities selected</b>
-              {selected.length > 0 ? <small>{selected.join(", ")}</small> : <small>Select 2 or more entities to merge</small>}
+              <b>{t("adminCuration.entitiesSelected", { count: selected.length })}</b>
+              {selected.length > 0 ? <small>{selected.join(", ")}</small> : <small>{t("adminCuration.selectTwoOrMore")}</small>}
             </div>
-            <input type="text" placeholder={`Merged name (defaults to "${selected[0] ?? ""}")`} value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)} />
-            <button type="button" className="curation-primary" disabled={selected.length < 2} onClick={() => setPending({ title: "Merge entities", description: `The ${selected.length} selected entities will be merged into one; the originals are replaced. Merge?`, confirmText: "Merge", run: doMerge })}>Merge into one entity</button>
+            <input type="text" placeholder={t("adminCuration.mergedNamePlaceholder", { name: selected[0] ?? "" })} value={mergeTarget} onChange={(e) => setMergeTarget(e.target.value)} />
+            <button type="button" className="curation-primary" disabled={selected.length < 2} onClick={() => setPending({ title: t("adminCuration.mergeEntities"), description: t("adminCuration.mergeDescription", { count: selected.length }), confirmText: t("adminCuration.merge"), run: doMerge })}>{t("adminCuration.mergeIntoOne")}</button>
           </section>
 
           <section className="curation-grid">
             {/* Entity list */}
             <section className="admin-panel">
-              <PanelHead eyebrow="Entities" title={`Entity list${loading ? " (Loading…)" : ""}`} />
+              <PanelHead eyebrow={t("adminCuration.entities")} title={`${t("adminCuration.entityList")}${loading ? ` (${t("adminCuration.loading")})` : ""}`} />
               <div className="curation-entity-list">
                 {(detail?.entities ?? []).map((e, i) => (
                   <article key={`${e.name}-${i}`} className={selected.includes(e.name) ? "is-selected" : ""}>
                     {editing === e.name ? (
                       <div className="curation-edit-form">
-                        <input value={editName} onChange={(ev) => setEditName(ev.target.value)} placeholder="Entity name" />
-                        <input value={editType} onChange={(ev) => setEditType(ev.target.value)} placeholder="Type (organization/person/concept…)" />
-                        <textarea value={editDesc} onChange={(ev) => setEditDesc(ev.target.value)} placeholder="Description" rows={2} />
+                        <input value={editName} onChange={(ev) => setEditName(ev.target.value)} placeholder={t("adminCuration.entityNamePlaceholder")} />
+                        <input value={editType} onChange={(ev) => setEditType(ev.target.value)} placeholder={t("adminCuration.entityTypePlaceholder")} />
+                        <textarea value={editDesc} onChange={(ev) => setEditDesc(ev.target.value)} placeholder={t("adminCuration.descriptionPlaceholder")} rows={2} />
                         <div className="curation-edit-actions">
-                          <button type="button" className="curation-primary" onClick={saveEdit}>Save</button>
-                          <button type="button" onClick={() => setEditing(null)}>Cancel</button>
+                          <button type="button" className="curation-primary" onClick={saveEdit}>{t("adminCuration.save")}</button>
+                          <button type="button" onClick={() => setEditing(null)}>{t("adminCuration.cancel")}</button>
                         </div>
                       </div>
                     ) : (
@@ -181,20 +183,20 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
                         </label>
                         {e.description ? <p>{e.description}</p> : null}
                         <div className="curation-row-actions">
-                          <button type="button" onClick={() => startEdit(e.name, e.type, e.description)}>Edit</button>
-                          <button type="button" className="curation-danger" onClick={() => setPending({ title: "Delete entity", description: `Deleting cannot be undone. Delete entity "${e.name}"?`, danger: true, confirmText: "Delete", run: () => deleteEntity(e.name) })}>Delete</button>
+                          <button type="button" onClick={() => startEdit(e.name, e.type, e.description)}>{t("adminCuration.edit")}</button>
+                          <button type="button" className="curation-danger" onClick={() => setPending({ title: t("adminCuration.deleteEntity"), description: t("adminCuration.deleteEntityDescription", { name: e.name }), danger: true, confirmText: t("adminCuration.delete"), run: () => deleteEntity(e.name) })}>{t("adminCuration.delete")}</button>
                         </div>
                       </>
                     )}
                   </article>
                 ))}
-                {!loading && (detail?.entities.length ?? 0) === 0 ? <p className="monitoring-empty">This graph source has no entities yet.</p> : null}
+                {!loading && (detail?.entities.length ?? 0) === 0 ? <p className="monitoring-empty">{t("adminCuration.noEntities")}</p> : null}
               </div>
             </section>
 
             {/* Relationship list */}
             <section className="admin-panel">
-              <PanelHead eyebrow="Relationships" title="Relationship list" />
+              <PanelHead eyebrow={t("adminCuration.relationships")} title={t("adminCuration.relationshipList")} />
               <div className="curation-relation-list">
                 {(detail?.relations ?? []).map((r, i) => (
                   <article key={`${r.source}-${r.target}-${i}`}>
@@ -202,10 +204,10 @@ export function AdminGraphCurationWorkbench({ sources }: { sources: GraphCuratio
                       <b>{r.source}</b><span>→</span><b>{r.target}</b>
                     </div>
                     {r.description ? <p>{r.description}</p> : null}
-                    <button type="button" className="curation-danger" onClick={() => setPending({ title: "Delete relationship", description: `Delete the relationship "${r.source} → ${r.target}"?`, danger: true, confirmText: "Delete", run: () => deleteRelation(r.source, r.target) })}>Delete relationship</button>
+                    <button type="button" className="curation-danger" onClick={() => setPending({ title: t("adminCuration.deleteRelationship"), description: t("adminCuration.deleteRelationshipDescription", { source: r.source, target: r.target }), danger: true, confirmText: t("adminCuration.delete"), run: () => deleteRelation(r.source, r.target) })}>{t("adminCuration.deleteRelationship")}</button>
                   </article>
                 ))}
-                {!loading && (detail?.relations.length ?? 0) === 0 ? <p className="monitoring-empty">This graph source has no relationships yet.</p> : null}
+                {!loading && (detail?.relations.length ?? 0) === 0 ? <p className="monitoring-empty">{t("adminCuration.noRelationships")}</p> : null}
               </div>
             </section>
           </section>

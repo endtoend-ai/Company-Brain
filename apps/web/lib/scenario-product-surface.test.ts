@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import { buildScenarioProductSurface, scenarioProductFormLabel } from "./scenario-product-surface";
+import { en } from "./i18n/dictionaries/en";
+import { translate } from "./i18n";
+
+const t = (key: string) => translate(en, key);
 
 describe("scenario product surface", () => {
   test("maps official templates to business workbench surfaces instead of a generic chatbot", () => {
@@ -16,17 +20,18 @@ describe("scenario product surface", () => {
     const graph = buildScenarioProductSurface("risk-investigation");
     const support = buildScenarioProductSurface("support-agent");
 
-    expect(review.primaryAction.label).toBe("Start document review");
+    expect(t(review.primaryAction.label)).toBe("Start document review");
     expect(review.quickPrompts).toEqual(expect.arrayContaining(["List the high-risk clauses and suggest edits."]));
-    expect(graph.primaryAction.label).toBe("Open relationship analysis");
-    expect(graph.contextPanelTitle).toBe("Relationships and evidence");
-    expect(support.primaryAction.label).toBe("Open support assistant");
+    expect(t(graph.primaryAction.label)).toBe("Open relationship analysis");
+    expect(t(graph.contextPanelTitle)).toBe("Relationships and evidence");
+    expect(t(support.primaryAction.label)).toBe("Open support assistant");
     expect(support.rightRailMode).toBe("widget");
   });
 
   test("keeps frontstage labels business-readable", () => {
-    expect(scenarioProductFormLabel("embedded_assistant")).toBe("Embedded assistant");
-    expect(scenarioProductFormLabel("document_review")).toBe("Document review");
-    expect(scenarioProductFormLabel("graph_explorer")).toBe("Relationship analysis");
+    expect(scenarioProductFormLabel("embedded_assistant")).toBe("platform.surface.embedded_assistant.label");
+    expect(t(scenarioProductFormLabel("embedded_assistant"))).toBe("Embedded assistant");
+    expect(t(scenarioProductFormLabel("document_review"))).toBe("Document review");
+    expect(t(scenarioProductFormLabel("graph_explorer"))).toBe("Relationship analysis");
   });
 });

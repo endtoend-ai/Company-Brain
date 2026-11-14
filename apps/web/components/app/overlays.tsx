@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { docBodies, explorer, explorerModes, pages } from "../../lib/fixtures/consume";
+import { useI18n } from "../../lib/i18n/language-context";
 
 function Shell({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
   useEffect(() => {
@@ -18,8 +19,9 @@ function Shell({ children, onClose, wide }: { children: React.ReactNode; onClose
 }
 
 function CloseBtn({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   return (
-    <button className="ov-x" onClick={onClose} aria-label="Close">
+    <button className="ov-x" onClick={onClose} aria-label={t("overlay.close")}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
     </button>
   );
@@ -27,12 +29,13 @@ function CloseBtn({ onClose }: { onClose: () => void }) {
 
 /* ---------------- 原文阅读器 ---------------- */
 export function DocReader({ docName, onClose }: { docName: string; onClose: () => void }) {
+  const { t } = useI18n();
   const doc = docBodies[docName] ?? Object.values(docBodies)[0];
   return (
     <Shell onClose={onClose}>
       <div className="ov-head">
         <div>
-          <span className="ov-kicker">Source text · highlighted supporting passage</span>
+          <span className="ov-kicker">{t("overlay.sourceTextKicker")}</span>
           <h2 className="ov-title">{doc.title}</h2>
           <span className="ov-meta">{doc.meta}</span>
         </div>
@@ -41,7 +44,7 @@ export function DocReader({ docName, onClose }: { docName: string; onClose: () =
       <div className="ov-body doc-reader">
         {doc.paras.map((p, i) => (
           <p key={i} className={p.hi ? "doc-para hi" : "doc-para"}>
-            {p.hi && <span className="doc-hi-tag">Source text supporting the answer</span>}
+            {p.hi && <span className="doc-hi-tag">{t("overlay.sourceTextTag")}</span>}
             {p.t}
           </p>
         ))}
@@ -52,6 +55,7 @@ export function DocReader({ docName, onClose }: { docName: string; onClose: () =
 
 /* ---------------- 图谱探索(global/local/direct) ---------------- */
 export function GraphExplorer({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const [mode, setMode] = useState("global");
   const [hover, setHover] = useState<string | null>(null);
   const { nodes, edges, clusters } = explorer;
@@ -75,9 +79,9 @@ export function GraphExplorer({ onClose }: { onClose: () => void }) {
     <Shell onClose={onClose} wide>
       <div className="ov-head">
         <div>
-          <span className="ov-kicker">Graph explorer · knowledge graph</span>
-          <h2 className="ov-title">Northwind Labs relationship network</h2>
-          <span className="ov-meta">Node size = relationship centrality · color = cluster · driven by question retrieval</span>
+          <span className="ov-kicker">{t("overlay.graphKicker")}</span>
+          <h2 className="ov-title">{t("overlay.graphTitle")}</h2>
+          <span className="ov-meta">{t("overlay.graphMeta")}</span>
         </div>
         <CloseBtn onClose={onClose} />
       </div>
@@ -117,7 +121,7 @@ export function GraphExplorer({ onClose }: { onClose: () => void }) {
               <span key={c.id}><i style={{ background: c.color }} />{c.name}</span>
             ))}
           </div>
-          <div className="gx-tip">Hover a node to highlight its connections · switch global, local, or direct to change the retrieval view</div>
+          <div className="gx-tip">{t("overlay.graphTip")}</div>
         </div>
       </div>
     </Shell>
@@ -126,6 +130,7 @@ export function GraphExplorer({ onClose }: { onClose: () => void }) {
 
 /* ---------------- Pages / 综述 ---------------- */
 export function PagesView({ pageId, onClose }: { pageId: string; onClose: () => void }) {
+  const { t } = useI18n();
   const doc = pages[pageId] ?? pages.medical;
   const [mind, setMind] = useState(false);
   return (
@@ -137,9 +142,9 @@ export function PagesView({ pageId, onClose }: { pageId: string; onClose: () => 
         </div>
         <div className="ov-head-actions">
           <button className={`ov-toggle ${mind ? "on" : ""}`} onClick={() => setMind((v) => !v)}>
-            {mind ? "Read text" : "Mind map"}
+            {mind ? t("overlay.readText") : t("overlay.mindMap")}
           </button>
-          <button className="ov-toggle">Export</button>
+          <button className="ov-toggle">{t("overlay.export")}</button>
           <CloseBtn onClose={onClose} />
         </div>
       </div>
@@ -149,12 +154,12 @@ export function PagesView({ pageId, onClose }: { pageId: string; onClose: () => 
         ) : (
           <>
             <aside className="pg-outline">
-              <span className="pg-outline-label">Outline</span>
+              <span className="pg-outline-label">{t("overlay.outline")}</span>
               {doc.outline.map((s) => (
                 <a key={s.id} href={`#${s.id}`} className="pg-outline-item">{s.heading}</a>
               ))}
               <div className="pg-sources">
-                <span className="pg-outline-label">Citations {doc.sources.length}</span>
+                <span className="pg-outline-label">{t("overlay.citations", { count: doc.sources.length })}</span>
                 {doc.sources.map((s) => (
                   <div key={s.n} className="pg-src"><span>{s.n}</span><div><b>{s.title}</b><em>{s.meta}</em></div></div>
                 ))}

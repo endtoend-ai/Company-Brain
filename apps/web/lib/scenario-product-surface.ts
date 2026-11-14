@@ -24,116 +24,116 @@ export type ScenarioProductSurface = {
 
 const surfaceCopy: Record<ScenarioProductSurfaceKind, Omit<ScenarioProductSurface, "kind" | "label">> = {
   embedded_assistant: {
-    headline: "Publish knowledge as an assistant embedded in a business entry point.",
-    description: "Fits support, after-sales, and help-center single-entry use cases. The job is not endless chat but answering, spotting knowledge gaps, and handing off to a human.",
-    workspaceTitle: "Support assistant workbench",
-    contextPanelTitle: "Matches and handoffs",
+    headline: "platform.surface.embedded_assistant.headline",
+    description: "platform.surface.embedded_assistant.description",
+    workspaceTitle: "platform.surface.embedded_assistant.workspaceTitle",
+    contextPanelTitle: "platform.surface.embedded_assistant.contextPanelTitle",
     rightRailMode: "widget",
-    primaryAction: { label: "Open support assistant", prompt: "Take a real customer question and return the answer, the citations, and whether it needs a human." },
+    primaryAction: { label: "platform.surface.embedded_assistant.primaryActionLabel", prompt: "Take a real customer question and return the answer, the citations, and whether it needs a human." },
     secondaryActions: [
-      { label: "Check knowledge gaps", prompt: "Show which high-frequency questions still lack answerable evidence in the current files." },
-      { label: "Generate handoff rules", prompt: "Draft the handoff boundaries and wording this knowledge base needs." }
+      { label: "platform.surface.embedded_assistant.secondaryAction1Label", prompt: "Show which high-frequency questions still lack answerable evidence in the current files." },
+      { label: "platform.surface.embedded_assistant.secondaryAction2Label", prompt: "Draft the handoff boundaries and wording this knowledge base needs." }
     ],
     quickPrompts: ["A customer says the order is three days late. How should we reply?", "Which questions should be handed off to a human?", "What is the help center still missing?"],
-    emptyState: "After publishing you can validate the web assistant, refusal boundaries, citations, and handoff rules here."
+    emptyState: "platform.surface.embedded_assistant.emptyState"
   },
   document_review: {
-    headline: "Review documents in place: risks, clauses, and suggested edits.",
-    description: "Fits contract, policy, RFP, and security questionnaire work. The interface centers on files, clauses, evidence, and open items.",
-    workspaceTitle: "Document review workbench",
-    contextPanelTitle: "Clauses and source text",
+    headline: "platform.surface.document_review.headline",
+    description: "platform.surface.document_review.description",
+    workspaceTitle: "platform.surface.document_review.workspaceTitle",
+    contextPanelTitle: "platform.surface.document_review.contextPanelTitle",
     rightRailMode: "document",
-    primaryAction: { label: "Start document review", prompt: "List the high-risk clauses and suggest edits." },
+    primaryAction: { label: "platform.surface.document_review.primaryActionLabel", prompt: "List the high-risk clauses and suggest edits." },
     secondaryActions: [
-      { label: "Generate review checklist", prompt: "Build a review checklist by risk level and mark the evidence for each item." },
-      { label: "Find missing clauses", prompt: "Check which key clauses and compliance notes this document is missing." }
+      { label: "platform.surface.document_review.secondaryAction1Label", prompt: "Build a review checklist by risk level and mark the evidence for each item." },
+      { label: "platform.surface.document_review.secondaryAction2Label", prompt: "Check which key clauses and compliance notes this document is missing." }
     ],
     quickPrompts: ["List the high-risk clauses and suggest edits.", "Which clauses need legal review?", "Turn the review findings into a summary I can send to the business."],
-    emptyState: "After publishing you can review source text, add comments, build a risk list, and draft reports."
+    emptyState: "platform.surface.document_review.emptyState"
   },
   graph_explorer: {
-    headline: "Analyze objects, relationships, events, and evidence chains.",
-    description: "Fits account relationships, supplier risk, due diligence, and domain entity graphs. The interface highlights relationship paths, evidence strength, and risk explanation.",
-    workspaceTitle: "Relationship analysis workbench",
-    contextPanelTitle: "Relationships and evidence",
+    headline: "platform.surface.graph_explorer.headline",
+    description: "platform.surface.graph_explorer.description",
+    workspaceTitle: "platform.surface.graph_explorer.workspaceTitle",
+    contextPanelTitle: "platform.surface.graph_explorer.contextPanelTitle",
     rightRailMode: "graph",
-    primaryAction: { label: "Open relationship analysis", prompt: "Map the key relationships, risk paths, and evidence sources around the current object." },
+    primaryAction: { label: "platform.surface.graph_explorer.primaryActionLabel", prompt: "Map the key relationships, risk paths, and evidence sources around the current object." },
     secondaryActions: [
-      { label: "Generate risk paths", prompt: "Find the relationship chains and risk events that matter most in the current files." },
-      { label: "Draft due diligence summary", prompt: "Turn the relationship analysis into a due diligence summary and open questions." }
+      { label: "platform.surface.graph_explorer.secondaryAction1Label", prompt: "Find the relationship chains and risk events that matter most in the current files." },
+      { label: "platform.surface.graph_explorer.secondaryAction2Label", prompt: "Turn the relationship analysis into a due diligence summary and open questions." }
     ],
     quickPrompts: ["What are this account's key relationships and risks right now?", "Which relationships need human confirmation?", "Generate a relationship risk summary."],
-    emptyState: "After publishing you can inspect relationship trails, risk paths, evidence chains, and follow-up explanations here."
+    emptyState: "platform.surface.graph_explorer.emptyState"
   },
   report_generator: {
-    headline: "Turn multi-source files into business briefs, reports, and next actions.",
-    description: "Fits account 360, business reviews, research reports, and meeting notes. The core output is structured conclusions, citations, and executable actions.",
-    workspaceTitle: "Business brief workbench",
-    contextPanelTitle: "Brief evidence",
+    headline: "platform.surface.report_generator.headline",
+    description: "platform.surface.report_generator.description",
+    workspaceTitle: "platform.surface.report_generator.workspaceTitle",
+    contextPanelTitle: "platform.surface.report_generator.contextPanelTitle",
     rightRailMode: "report",
-    primaryAction: { label: "Generate business brief", prompt: "Produce a structured business brief with conclusions, risks, opportunities, evidence, and next-step recommendations." },
+    primaryAction: { label: "platform.surface.report_generator.primaryActionLabel", prompt: "Produce a structured business brief with conclusions, risks, opportunities, evidence, and next-step recommendations." },
     secondaryActions: [
-      { label: "Extract risks and opportunities", prompt: "Extract only the risk signals, opportunity signals, and next actions from the current files." },
-      { label: "Generate shareable version", prompt: "Condense the conclusions into a concise version the team can share." }
+      { label: "platform.surface.report_generator.secondaryAction1Label", prompt: "Extract only the risk signals, opportunity signals, and next actions from the current files." },
+      { label: "platform.surface.report_generator.secondaryAction2Label", prompt: "Condense the conclusions into a concise version the team can share." }
     ],
     quickPrompts: ["Generate a business brief.", "What are the biggest risks and opportunities right now?", "Give me next-step recommendations."],
-    emptyState: "After publishing you can generate briefs, report drafts, business reviews, and next actions here."
+    emptyState: "platform.surface.report_generator.emptyState"
   },
   task_workflow: {
-    headline: "Turn knowledge into trackable processes, action items, and tasks.",
-    description: "Fits operations troubleshooting, meeting action items, team handbooks, and service processes. The interface highlights steps, owners, status, and escalation paths.",
-    workspaceTitle: "Process task workbench",
-    contextPanelTitle: "Steps and action items",
+    headline: "platform.surface.task_workflow.headline",
+    description: "platform.surface.task_workflow.description",
+    workspaceTitle: "platform.surface.task_workflow.workspaceTitle",
+    contextPanelTitle: "platform.surface.task_workflow.contextPanelTitle",
     rightRailMode: "tasks",
-    primaryAction: { label: "Generate task list", prompt: "Turn the current files into executable steps, owner suggestions, and escalation paths." },
+    primaryAction: { label: "platform.surface.task_workflow.primaryActionLabel", prompt: "Turn the current files into executable steps, owner suggestions, and escalation paths." },
     secondaryActions: [
-      { label: "View escalation path", prompt: "How should this process escalate when something goes wrong?" },
-      { label: "Capture action items", prompt: "Extract action items, owners, and due dates from the current files." }
+      { label: "platform.surface.task_workflow.secondaryAction1Label", prompt: "How should this process escalate when something goes wrong?" },
+      { label: "platform.surface.task_workflow.secondaryAction2Label", prompt: "Extract action items, owners, and due dates from the current files." }
     ],
     quickPrompts: ["Generate an executable task list.", "How should we escalate when something fails?", "Extract owners and due dates."],
-    emptyState: "After publishing you can generate steps, action items, escalation paths, and task retrospectives here."
+    emptyState: "platform.surface.task_workflow.emptyState"
   },
   knowledge_portal: {
-    headline: "Turn files into a browsable, searchable knowledge portal.",
-    description: "Fits personal wikis, team handbooks, research guides, and knowledge bases. The interface highlights outlines, topics, sources, and reuse entry points.",
-    workspaceTitle: "Knowledge portal workbench",
-    contextPanelTitle: "Outline and sources",
+    headline: "platform.surface.knowledge_portal.headline",
+    description: "platform.surface.knowledge_portal.description",
+    workspaceTitle: "platform.surface.knowledge_portal.workspaceTitle",
+    contextPanelTitle: "platform.surface.knowledge_portal.contextPanelTitle",
     rightRailMode: "sources",
-    primaryAction: { label: "Browse knowledge outline", prompt: "Turn the current knowledge base into a topic outline with a summary for each topic." },
+    primaryAction: { label: "platform.surface.knowledge_portal.primaryActionLabel", prompt: "Turn the current knowledge base into a topic outline with a summary for each topic." },
     secondaryActions: [
-      { label: "Ask by topic", prompt: "Answer one traceable question by topic from the current files." },
-      { label: "Generate knowledge summary", prompt: "Condense the current knowledge space into a one-page summary." }
+      { label: "platform.surface.knowledge_portal.secondaryAction1Label", prompt: "Answer one traceable question by topic from the current files." },
+      { label: "platform.surface.knowledge_portal.secondaryAction2Label", prompt: "Condense the current knowledge space into a one-page summary." }
     ],
     quickPrompts: ["Turn the current knowledge base into a topic outline.", "What matters most in this knowledge space?", "Generate a learning summary."],
-    emptyState: "After publishing you can browse the outline, search by topic, trace sources, and generate knowledge summaries here."
+    emptyState: "platform.surface.knowledge_portal.emptyState"
   },
   chat: {
-    headline: "Traceable multi-turn Q&A over a defined knowledge scope.",
-    description: "Fits policy, process, and FAQ work that is genuinely Q&A-first, while still showing sources, permissions, and capturable deliverables.",
-    workspaceTitle: "Scenario Q&A workbench",
-    contextPanelTitle: "Answer evidence",
+    headline: "platform.surface.chat.headline",
+    description: "platform.surface.chat.description",
+    workspaceTitle: "platform.surface.chat.workspaceTitle",
+    contextPanelTitle: "platform.surface.chat.contextPanelTitle",
     rightRailMode: "sources",
-    primaryAction: { label: "Start asking", prompt: "Answer this from the current scenario files and cite the sources." },
+    primaryAction: { label: "platform.surface.chat.primaryActionLabel", prompt: "Answer this from the current scenario files and cite the sources." },
     secondaryActions: [
-      { label: "Trace the evidence", prompt: "Explain which files each part of this answer came from." },
-      { label: "Save the answer", prompt: "Turn this answer into a reusable knowledge entry." }
+      { label: "platform.surface.chat.secondaryAction1Label", prompt: "Explain which files each part of this answer came from." },
+      { label: "platform.surface.chat.secondaryAction2Label", prompt: "Turn this answer into a reusable knowledge entry." }
     ],
     quickPrompts: ["Answer this from the current scenario files.", "Give me the source citations.", "Turn the answer into a reusable entry."],
-    emptyState: "After publishing you can run multi-turn Q&A, trace sources, and save answers here."
+    emptyState: "platform.surface.chat.emptyState"
   },
   hybrid: {
-    headline: "A combined workbench for document evidence, knowledge graph, and knowledge portal.",
-    description: "Fits complex work that needs retrieval, graph, reports, and process at once. The interface follows the template's primary business goal.",
-    workspaceTitle: "Combined workbench",
-    contextPanelTitle: "Mixed evidence",
+    headline: "platform.surface.hybrid.headline",
+    description: "platform.surface.hybrid.description",
+    workspaceTitle: "platform.surface.hybrid.workspaceTitle",
+    contextPanelTitle: "platform.surface.hybrid.contextPanelTitle",
     rightRailMode: "report",
-    primaryAction: { label: "Generate combined conclusion", prompt: "Retrieve across document evidence, knowledge graph, and knowledge wiki in parallel, then produce a combined conclusion with citations." },
+    primaryAction: { label: "platform.surface.hybrid.primaryActionLabel", prompt: "Retrieve across document evidence, knowledge graph, and knowledge wiki in parallel, then produce a combined conclusion with citations." },
     secondaryActions: [
-      { label: "Split by evidence type", prompt: "Split this answer's evidence into document evidence, knowledge graph, and knowledge wiki." },
-      { label: "Capture as a scenario", prompt: "Decide which scenario this question should become." }
+      { label: "platform.surface.hybrid.secondaryAction1Label", prompt: "Split this answer's evidence into document evidence, knowledge graph, and knowledge wiki." },
+      { label: "platform.surface.hybrid.secondaryAction2Label", prompt: "Decide which scenario this question should become." }
     ],
     quickPrompts: ["Generate a combined conclusion with evidence.", "Split the sources by evidence type.", "Recommend a scenario to capture this."],
-    emptyState: "After publishing you can combine knowledge types into conclusions, reports, and business actions."
+    emptyState: "platform.surface.hybrid.emptyState"
   }
 };
 
@@ -156,14 +156,14 @@ export function choosePrimarySurface(productForms: TemplateProductForm[]): Scena
 
 export function scenarioProductFormLabel(kind: ScenarioProductSurfaceKind): string {
   const labels: Record<ScenarioProductSurfaceKind, string> = {
-    embedded_assistant: "Embedded assistant",
-    document_review: "Document review",
-    graph_explorer: "Relationship analysis",
-    report_generator: "Business brief",
-    task_workflow: "Process tasks",
-    knowledge_portal: "Knowledge portal",
-    chat: "Scenario Q&A",
-    hybrid: "Combined workbench"
+    embedded_assistant: "platform.surface.embedded_assistant.label",
+    document_review: "platform.surface.document_review.label",
+    graph_explorer: "platform.surface.graph_explorer.label",
+    report_generator: "platform.surface.report_generator.label",
+    task_workflow: "platform.surface.task_workflow.label",
+    knowledge_portal: "platform.surface.knowledge_portal.label",
+    chat: "platform.surface.chat.label",
+    hybrid: "platform.surface.hybrid.label"
   };
   return labels[kind];
 }

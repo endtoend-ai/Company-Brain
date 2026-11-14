@@ -2,13 +2,23 @@
 
 import { useMemo, useState } from "react";
 import type { DeliverableBlock, ScenarioApp } from "../../lib/fixtures/scenarios";
-import { capabilityLabel, capabilityTone, runtimeLabel } from "../../lib/fixtures/scenarios";
+import { capabilityTone, type Capability, type ScenarioRuntime } from "../../lib/fixtures/scenarios";
+import { useI18n } from "../../lib/i18n/language-context";
 
 type RuntimeProps = {
   scenario: ScenarioApp;
 };
 
+function capabilityLabelKey(capability: Capability) {
+  return `runtime.capability.${capability}`;
+}
+
+function runtimeLabelKey(runtime: ScenarioRuntime) {
+  return `runtime.runtimeLabel.${runtime}`;
+}
+
 export function ScenarioRuntime({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   const [ran, setRan] = useState(false);
   const [loading, setLoading] = useState(false);
   const tone = capabilityTone[scenario.capabilities[0]];
@@ -35,17 +45,17 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
           <div className="sp-chip-row">
             {scenario.capabilities.map((capability) => (
               <span key={capability} className="sp-chip" style={{ ["--chip" as any]: capabilityTone[capability].color, ["--chips" as any]: capabilityTone[capability].soft }}>
-                {capabilityLabel[capability]}
+                {t(capabilityLabelKey(capability))}
               </span>
             ))}
           </div>
         </div>
-        <span className="run-cat">{runtimeLabel[scenario.runtime]}</span>
+        <span className="run-cat">{t(runtimeLabelKey(scenario.runtime))}</span>
       </div>
 
       <div className="run-grid">
         <aside className="run-form">
-          <div className="run-form-label">Inputs and knowledge scope</div>
+          <div className="run-form-label">{t("runtime.inputsLabel")}</div>
           {scenario.inputs.map((input) => (
             <div className="run-field" key={input.key}>
               <label>{input.label}</label>
@@ -54,7 +64,7 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
               ) : input.type === "file" ? (
                 <div className="sp-file-input">
                   <span>{input.sample}</span>
-                  <button>Replace</button>
+                  <button>{t("runtime.replace")}</button>
                 </div>
               ) : (
                 <textarea rows={3} defaultValue={samples[input.key]} placeholder={input.placeholder} />
@@ -63,7 +73,7 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
           ))}
 
           <div className="sp-knowledge-box">
-            <b>Bound knowledge sources</b>
+            <b>{t("runtime.boundSources")}</b>
             {scenario.knowledgeBindings.map((binding) => (
               <span key={binding.id}>
                 <i style={{ background: capabilityTone[binding.capability].color }} />
@@ -73,9 +83,9 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
           </div>
 
           <button className="run-go" onClick={runScenario} disabled={loading}>
-            {loading ? "Running..." : "Run scenario"}
+            {loading ? t("runtime.running") : t("runtime.runScenario")}
           </button>
-          <p className="run-hint">Enter the business object and the system queries the knowledge bases bound to this scenario, returning a savable deliverable with traceable evidence.</p>
+          <p className="run-hint">{t("runtime.hint")}</p>
         </aside>
 
         <section className="run-out">
@@ -83,7 +93,7 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
           {loading && (
             <div className="run-loading">
               <span className="run-spinner" />
-              Retrieving knowledge, assembling evidence, and generating the deliverable
+              {t("runtime.loading")}
             </div>
           )}
           {ran && <RuntimeDeliverable scenario={scenario} />}
@@ -94,16 +104,17 @@ export function ScenarioRuntime({ scenario }: RuntimeProps) {
 }
 
 function RuntimePreview({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   return (
     <div className="sp-runtime-preview">
       <div className="run-empty-ic">{scenario.name.slice(0, 1)}</div>
-      <p>Ready to run {runtimeLabel[scenario.runtime]}</p>
-      <span>Running produces "{scenario.outputTypes.join(" / ")}" with evidence, quality signals, and next actions.</span>
+      <p>{t("runtime.readyToRun", { runtime: t(runtimeLabelKey(scenario.runtime)) })}</p>
+      <span>{t("runtime.produces", { outputs: scenario.outputTypes.join(" / ") })}</span>
       <div className="sp-preview-grid">
         {scenario.outputTypes.map((type) => (
           <div key={type}>
             <b>{type}</b>
-            <span>Structured deliverable</span>
+            <span>{t("runtime.structuredDeliverable")}</span>
           </div>
         ))}
       </div>
@@ -121,6 +132,7 @@ function RuntimeDeliverable({ scenario }: RuntimeProps) {
 }
 
 function BriefRuntime({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   return (
     <div className="run-doc sp-brief-runtime">
       <DeliverableHeader scenario={scenario} />
@@ -132,9 +144,9 @@ function BriefRuntime({ scenario }: RuntimeProps) {
           </div>
         </article>
         <aside className="sp-path-panel">
-          <b>Relationship path evidence</b>
+          <b>{t("runtime.relationshipPathEvidence")}</b>
           <PathLine items={scenario.id === "customer-360" ? ["Northwind Labs", "Daniel Kim", "Project Atlas", "Renewal contract"] : ["Skyline Networks", "Northstar Cloud", "SLA breach event", "Alternative supplier"]} />
-          <span>Lead with the business conclusion; open a risk to see its path rather than making the graph the main interface.</span>
+          <span>{t("runtime.pathHint")}</span>
         </aside>
       </div>
     </div>
@@ -163,6 +175,7 @@ function DocumentReviewRuntime({ scenario }: RuntimeProps) {
 }
 
 function QuestionnaireRuntime({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   const rows = [
     { q: "Do you support SSO?", answer: "Yes — SAML 2.0 and OIDC, integrated with the customer IdP.", source: "Identity authentication whitepaper", status: "Approved" },
     { q: "How is data at rest encrypted?", answer: "AES-256 at rest and TLS 1.2+ in transit.", source: "Security whitepaper v4", status: "Approved" },
@@ -174,7 +187,7 @@ function QuestionnaireRuntime({ scenario }: RuntimeProps) {
       <DeliverableHeader scenario={scenario} />
       <div className="sp-q-top">
         <h2>{scenario.deliverable.title}</h2>
-        <span>42 of 48 generated · 6 need review</span>
+        <span>{t("runtime.generatedProgress")}</span>
       </div>
       <div className="sp-q-table">
         {rows.map((row) => (
@@ -191,16 +204,17 @@ function QuestionnaireRuntime({ scenario }: RuntimeProps) {
 }
 
 function NotebookRuntime({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   return (
     <div className="run-doc sp-notebook">
       <DeliverableHeader scenario={scenario} />
       <div className="sp-notebook-layout">
         <aside>
-          <b>Handbook outline</b>
+          <b>{t("runtime.handbookOutline")}</b>
           <span>01 Product and customer basics</span>
           <span>02 Using scenario tools</span>
           <span>03 Completing a customer retrospective</span>
-          <b>Sources</b>
+          <b>{t("runtime.sources")}</b>
           <span>Sales onboarding</span>
           <span>Customer brief template</span>
         </aside>
@@ -216,6 +230,7 @@ function NotebookRuntime({ scenario }: RuntimeProps) {
 }
 
 function SupportWidgetRuntime({ scenario }: RuntimeProps) {
+  const { t } = useI18n();
   return (
     <div className="sp-widget-runtime">
       <div className="sp-shop-page">
@@ -223,7 +238,7 @@ function SupportWidgetRuntime({ scenario }: RuntimeProps) {
         <div className="sp-shop-card" />
         <div className="sp-shop-card wide" />
         <div className="sp-chat-widget">
-          <b>Live assistant</b>
+          <b>{t("runtime.liveAssistant")}</b>
           <p>Why is order 8842 delayed?</p>
           <span>The order is delayed one day by a West Coast warehouse cycle count. Offer the customer a shipping credit.</span>
         </div>
@@ -265,6 +280,7 @@ function DeliverableHeader({ scenario }: RuntimeProps) {
 }
 
 export function RenderBlocks({ blocks }: { blocks: DeliverableBlock[] }) {
+  const { t } = useI18n();
   return (
     <>
       {blocks.map((block, index) => {
@@ -299,7 +315,7 @@ export function RenderBlocks({ blocks }: { blocks: DeliverableBlock[] }) {
               <div className="bk-risks">
                 {block.items.map((item) => (
                   <div className={`bk-risk lv-${item.level}`} key={item.title}>
-                    <span className="bk-risk-lv">{item.level === "high" ? "High" : item.level === "mid" ? "Mid" : "Low"}</span>
+                    <span className="bk-risk-lv">{item.level === "high" ? t("runtime.riskHigh") : item.level === "mid" ? t("runtime.riskMid") : t("runtime.riskLow")}</span>
                     <div>
                       <b>{item.title}</b>
                       <p>{item.note}</p>
@@ -313,7 +329,7 @@ export function RenderBlocks({ blocks }: { blocks: DeliverableBlock[] }) {
         }
         return (
           <div className="bk-sources" key={index}>
-            <span className="bk-sources-label">Source evidence</span>
+            <span className="bk-sources-label">{t("runtime.sourceEvidence")}</span>
             {block.items.map((item) => (
               <div className="bk-src" key={item.title}>
                 <SourceIcon />
@@ -321,7 +337,7 @@ export function RenderBlocks({ blocks }: { blocks: DeliverableBlock[] }) {
                   <strong>{item.title}</strong>
                   <span>{item.meta}</span>
                 </div>
-                <span className="bk-src-open">Open</span>
+                <span className="bk-src-open">{t("runtime.open")}</span>
               </div>
             ))}
           </div>
@@ -332,9 +348,10 @@ export function RenderBlocks({ blocks }: { blocks: DeliverableBlock[] }) {
 }
 
 function RuntimeChoice({ options, defaultValue }: { options: string[]; defaultValue: string }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(defaultValue);
   return (
-    <div className="run-choice-group" role="radiogroup" aria-label="Choose a business option">
+    <div className="run-choice-group" role="radiogroup" aria-label={t("runtime.chooseOption")}>
       {options.map((option) => (
         <button
           key={option}

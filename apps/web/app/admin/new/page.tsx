@@ -1,5 +1,10 @@
 import { Soon } from "../../../components/site/soon";
+import { cookies } from "next/headers";
+import { getDictionary } from "../../../lib/i18n";
+import { LOCALE_COOKIE, normalizeLocale } from "../../../lib/i18n/types";
 
-export default function AdminNew() {
-  return <Soon kind="Admin · Scenario guide" title="New Knowledge Base · Pick a Scenario → Get a Recommendation → Build It" />;
+export default async function AdminNew() {
+  const store = await cookies();
+  const dictionary = getDictionary(normalizeLocale(store.get(LOCALE_COOKIE)?.value));
+  return <Soon kind={dictionary.admin.soon.newKind} title={dictionary.admin.soon.newTitle} />;
 }

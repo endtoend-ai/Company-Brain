@@ -8,9 +8,11 @@ dist
 .venv
 __pycache__
 *.pyc
+*.tsbuildinfo
 archive/
 output/
 .pi
+.platform-data/
 .traditional-rag-storage/
 apps/web/.platform-data/
 apps/web/design-system/

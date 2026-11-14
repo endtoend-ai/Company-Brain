@@ -4,20 +4,22 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { AdminShell, AdminPageHead, PanelHead, AdminStatusBadge } from "./admin-pages";
+import { useI18n } from "../../lib/i18n/language-context";
 import type { MonitoringOverview, MonitoringTrendPoint, MonitoringFormPanels, StoredChatTrace, TraceFormLabel } from "../../lib/server/platform-store";
 
 type TraceRow = Omit<StoredChatTrace, "spans">;
 type FormFilterLabel = TraceFormLabel | "全部";
 
-const FORM_LABEL: Record<FormFilterLabel, string> = {
-  文档型: "Documents",
-  图谱型: "Graph",
-  知识页型: "Knowledge pages",
-  全部: "All"
+const FORM_LABEL_KEYS: Record<FormFilterLabel, string> = {
+  文档型: "adminMonitoring.formDocuments",
+  图谱型: "adminMonitoring.formGraph",
+  知识页型: "adminMonitoring.formKnowledgePages",
+  全部: "adminMonitoring.formAll"
 };
 
-function formLabel(form: FormFilterLabel) {
-  return FORM_LABEL[form] ?? form;
+function formLabel(form: FormFilterLabel, t: (key: string) => string) {
+  const key = FORM_LABEL_KEYS[form];
+  return key ? t(key) : form;
 }
 
 const FORM_BADGE: Record<TraceFormLabel, string> = {
@@ -37,57 +39,58 @@ export function AdminMonitoringPage({
   trends?: MonitoringTrendPoint[];
   formPanels?: MonitoringFormPanels;
 }) {
+  const { t, formatNumber } = useI18n();
   const [formFilter, setFormFilter] = useState<TraceFormLabel | "全部">("全部");
   const [onlyFailed, setOnlyFailed] = useState(false);
   const [onlyDown, setOnlyDown] = useState(false);
 
-  const filtered = traces.filter((t) => {
-    if (formFilter !== "全部" && !t.forms.includes(formFilter)) return false;
-    if (onlyFailed && t.success) return false;
-    if (onlyDown && t.feedback?.vote !== "down") return false;
+  const filtered = traces.filter((row) => {
+    if (formFilter !== "全部" && !row.forms.includes(formFilter)) return false;
+    if (onlyFailed && row.success) return false;
+    if (onlyDown && row.feedback?.vote !== "down") return false;
     return true;
   });
 
   const o = overview.overall;
-  const reviewQueue = traces.filter((t) => t.feedback?.vote === "down");
+  const reviewQueue = traces.filter((row) => row.feedback?.vote === "down");
 
   return (
-    <AdminShell active="/admin/monitoring" title="Monitoring">
+    <AdminShell active="/admin/monitoring" title={t("adminMonitoring.shellTitle")}>
       <AdminPageHead
-        eyebrow="Monitoring · observability"
-        title="Live Q&A traces, quality, and feedback in one view"
-        description="Every company-wide or scenario question records one trace: which evidence was retrieved, how many tokens it took, the latency, and whether the user was satisfied. All metrics come from real Q&A, not sample data."
+        eyebrow={t("adminMonitoring.eyebrow")}
+        title={t("adminMonitoring.title")}
+        description={t("adminMonitoring.description")}
       />
 
       {/* Overview health */}
       <section className="admin-panel">
-        <PanelHead eyebrow="Overview health" title="Top-level operating metrics (live aggregate)" />
+        <PanelHead eyebrow={t("adminMonitoring.overviewHealth")} title={t("adminMonitoring.overviewHealthTitle")} />
         <div className="monitoring-kpi-grid">
-          <article className="monitoring-kpi"><span>Questions</span><b>{o.queries}</b><small>Real questions answered</small></article>
-          <article className="monitoring-kpi"><span>Answer success rate</span><b>{o.successRate}%</b><small>Answered with a real citation or directly</small></article>
-          <article className="monitoring-kpi"><span>No-answer rate</span><b>{o.noAnswerRate}%</b><small>No source matched during retrieval</small></article>
-          <article className="monitoring-kpi"><span>Latency P50 / P95</span><b>{o.p50LatencyMs} / {o.p95LatencyMs}<i>ms</i></b><small>End to end</small></article>
-          <article className="monitoring-kpi"><span>Token usage</span><b>{o.totalTokens.toLocaleString("en-US")}</b><small>Total across generation calls</small></article>
-          <article className="monitoring-kpi"><span>Upvotes / downvotes</span><b>{o.upvotes} / {o.downvotes}</b><small>{o.pendingReview} to review</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiQuestions")}</span><b>{o.queries}</b><small>{t("adminMonitoring.kpiQuestionsHelper")}</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiSuccessRate")}</span><b>{o.successRate}%</b><small>{t("adminMonitoring.kpiSuccessRateHelper")}</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiNoAnswerRate")}</span><b>{o.noAnswerRate}%</b><small>{t("adminMonitoring.kpiNoAnswerRateHelper")}</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiLatency")}</span><b>{o.p50LatencyMs} / {o.p95LatencyMs}<i>ms</i></b><small>{t("adminMonitoring.kpiLatencyHelper")}</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiTokens")}</span><b>{formatNumber(o.totalTokens)}</b><small>{t("adminMonitoring.kpiTokensHelper")}</small></article>
+          <article className="monitoring-kpi"><span>{t("adminMonitoring.kpiVotes")}</span><b>{o.upvotes} / {o.downvotes}</b><small>{t("adminMonitoring.kpiVotesHelper", { count: o.pendingReview })}</small></article>
         </div>
       </section>
 
       {/* Health by knowledge form */}
       <section className="admin-panel">
-        <PanelHead eyebrow="Health by form" title="Retrieval performance for documents, graphs, and pages" />
+        <PanelHead eyebrow={t("adminMonitoring.healthByForm")} title={t("adminMonitoring.healthByFormTitle")} />
         <div className="monitoring-form-grid">
           {overview.forms.map((f) => (
             <article key={f.form} className="monitoring-form-card">
               <header>
-                <b>{formLabel(f.form)}</b>
+                <b>{formLabel(f.form, t)}</b>
                 <AdminStatusBadge status={f.queries === 0 ? "观察" : f.hitRate >= 60 ? "正常" : "需复核"} />
               </header>
               <small>{FORM_BADGE[f.form]}</small>
               <div className="monitoring-form-metrics">
-                <div><span>Questions</span><b>{f.queries}</b></div>
-                <div><span>Retrieval hit rate</span><b>{f.hitRate}%</b></div>
-                <div><span>Avg retrieval latency</span><b>{f.avgRetrievalMs}ms</b></div>
-                <div><span>Downvotes</span><b>{f.downvotes}</b></div>
+                <div><span>{t("adminMonitoring.formQuestions")}</span><b>{f.queries}</b></div>
+                <div><span>{t("adminMonitoring.formHitRate")}</span><b>{f.hitRate}%</b></div>
+                <div><span>{t("adminMonitoring.formAvgLatency")}</span><b>{f.avgRetrievalMs}ms</b></div>
+                <div><span>{t("adminMonitoring.formDownvotes")}</span><b>{f.downvotes}</b></div>
               </div>
             </article>
           ))}
@@ -97,10 +100,10 @@ export function AdminMonitoringPage({
       {/* Trends: daily series */}
       {trends.length > 0 ? (
         <section className="admin-panel">
-          <PanelHead eyebrow="Trends" title="Recent questions, success rate, latency, and downvotes (daily)" />
+          <PanelHead eyebrow={t("adminMonitoring.trends")} title={t("adminMonitoring.trendsTitle")} />
           <div className="monitoring-trend-table" role="table">
             <div role="row" className="admin-table-head">
-              <span>Date</span><span>Questions</span><span>Success rate</span><span>Avg latency</span><span>Downvotes</span><span>Token</span>
+              <span>{t("adminMonitoring.thDate")}</span><span>{t("adminMonitoring.thQuestions")}</span><span>{t("adminMonitoring.thSuccessRate")}</span><span>{t("adminMonitoring.thAvgLatency")}</span><span>{t("adminMonitoring.thDownvotes")}</span><span>{t("adminMonitoring.thToken")}</span>
             </div>
             {trends.map((p) => (
               <div role="row" key={p.date}>
@@ -119,19 +122,19 @@ export function AdminMonitoringPage({
       {/* Per-form detail: native monitoring for each knowledge form */}
       {formPanels ? (
         <section className="admin-panel">
-          <PanelHead eyebrow="Per-form detail" title="Native monitoring metrics for each knowledge form" />
+          <PanelHead eyebrow={t("adminMonitoring.perFormDetail")} title={t("adminMonitoring.perFormDetailTitle")} />
           <div className="monitoring-deep-grid">
             {/* Documents: chunk and source hit distribution */}
             <article className="monitoring-deep-card">
-              <header><b>Documents · Naive RAG</b><span>Hits by source</span></header>
-              <p className="monitoring-deep-note">{formPanels.文档型.zeroHitSources} sources returned zero hits when retrieved (chunking may be off or the retrieval policy needs tuning).</p>
+              <header><b>{t("adminMonitoring.formDocuments")} · Naive RAG</b><span>{t("adminMonitoring.hitsBySource")}</span></header>
+              <p className="monitoring-deep-note">{t("adminMonitoring.zeroHitSources", { count: formPanels.文档型.zeroHitSources })}</p>
               <div className="monitoring-source-bars">
-                {formPanels.文档型.sources.length === 0 ? <small className="monitoring-empty">No document retrieval records yet.</small> : null}
+                {formPanels.文档型.sources.length === 0 ? <small className="monitoring-empty">{t("adminMonitoring.noDocumentRecords")}</small> : null}
                 {formPanels.文档型.sources.map((s) => (
                   <div key={s.name} className="monitoring-source-bar">
                     <span title={s.name}>{s.name}</span>
                     <i style={{ width: `${Math.min(100, (s.hits / Math.max(1, s.queries)) * 100)}%` }} />
-                    <em>{s.hits} hits / {s.queries} retrievals</em>
+                    <em>{t("adminMonitoring.hitsPerRetrievals", { hits: s.hits, queries: s.queries })}</em>
                   </div>
                 ))}
               </div>
@@ -139,39 +142,39 @@ export function AdminMonitoringPage({
 
             {/* Graph: entities, relationships, duplicates (real graph-rag) */}
             <article className="monitoring-deep-card">
-              <header><b>Graph · GraphRAG</b><span>Entities / relationships / dedup</span></header>
+              <header><b>{t("adminMonitoring.formGraph")} · GraphRAG</b><span>{t("adminMonitoring.entitiesRelationships")}</span></header>
               {formPanels.图谱型.available ? (
                 <>
                   <div className="monitoring-graph-counts">
-                    <div><span>Entities</span><b>{formPanels.图谱型.entities}</b></div>
-                    <div><span>Relationships</span><b>{formPanels.图谱型.relations}</b></div>
-                    <div><span>Graph sources</span><b>{formPanels.图谱型.sources}</b></div>
-                    <div><span>Duplicate candidates</span><b>{formPanels.图谱型.duplicateCandidates.length}</b></div>
+                    <div><span>{t("adminMonitoring.entities")}</span><b>{formPanels.图谱型.entities}</b></div>
+                    <div><span>{t("adminMonitoring.relationships")}</span><b>{formPanels.图谱型.relations}</b></div>
+                    <div><span>{t("adminMonitoring.graphSources")}</span><b>{formPanels.图谱型.sources}</b></div>
+                    <div><span>{t("adminMonitoring.duplicateCandidates")}</span><b>{formPanels.图谱型.duplicateCandidates.length}</b></div>
                   </div>
                   {formPanels.图谱型.duplicateCandidates.length > 0 ? (
                     <div className="monitoring-dup-list">
-                      <small>Possible duplicate entities (merge them during curation):</small>
+                      <small>{t("adminMonitoring.duplicateHint")}</small>
                       {formPanels.图谱型.duplicateCandidates.slice(0, 10).map((dup, i) => (
                         <span key={i} className="monitoring-dup-pair">{dup}</span>
                       ))}
                     </div>
-                  ) : <small className="monitoring-empty">No obvious duplicate entities detected.</small>}
+                  ) : <small className="monitoring-empty">{t("adminMonitoring.noDuplicates")}</small>}
                   <div className="monitoring-entity-chips">
                     {formPanels.图谱型.sampleEntities.slice(0, 16).map((e) => <span key={e}>{e}</span>)}
                   </div>
                 </>
-              ) : <small className="monitoring-empty">GraphRAG graph stats are unavailable (the module did not respond).</small>}
+              ) : <small className="monitoring-empty">{t("adminMonitoring.graphUnavailable")}</small>}
             </article>
 
             {/* Knowledge pages: citation traceability and freshness */}
             <article className="monitoring-deep-card">
-              <header><b>Knowledge pages · Gbrain</b><span>Traceability / freshness</span></header>
+              <header><b>{t("adminMonitoring.formKnowledgePages")} · Gbrain</b><span>{t("adminMonitoring.traceabilityFreshness")}</span></header>
               <div className="monitoring-graph-counts">
-                <div><span>Citation traceability</span><b>{formPanels.知识页型.traceableRate}%</b></div>
-                <div><span>Pages</span><b>{formPanels.知识页型.knowledgePages}</b></div>
-                <div><span>Newest page age</span><b>{formPanels.知识页型.latestPageAgeHours === null ? "—" : `${formPanels.知识页型.latestPageAgeHours}h`}</b></div>
+                <div><span>{t("adminMonitoring.citationTraceability")}</span><b>{formPanels.知识页型.traceableRate}%</b></div>
+                <div><span>{t("adminMonitoring.pages")}</span><b>{formPanels.知识页型.knowledgePages}</b></div>
+                <div><span>{t("adminMonitoring.newestPageAge")}</span><b>{formPanels.知识页型.latestPageAgeHours === null ? "—" : `${formPanels.知识页型.latestPageAgeHours}h`}</b></div>
               </div>
-              <p className="monitoring-deep-note">Citation traceability is the share of knowledge-page answers that actually cite a page source; freshness shows whether pages need a refresh.</p>
+              <p className="monitoring-deep-note">{t("adminMonitoring.traceabilityNote")}</p>
             </article>
           </div>
         </section>
@@ -179,16 +182,16 @@ export function AdminMonitoringPage({
 
       {/* Feedback: downvotes enter the improvement queue */}
       <section className="admin-panel">
-        <PanelHead eyebrow="Feedback / improvement" title={`Improvement queue (${reviewQueue.length} downvotes)`} />
+        <PanelHead eyebrow={t("adminMonitoring.feedbackImprovement")} title={t("adminMonitoring.improvementQueue", { count: reviewQueue.length })} />
         {reviewQueue.length === 0 ? (
-          <p className="monitoring-empty">No downvotes yet. When a workspace answer is downvoted it lands here so an admin can attribute the cause (retrieval missed, retrieved but answered wrong, missing material, poor chunking, or a graph error) and fix it.</p>
+          <p className="monitoring-empty">{t("adminMonitoring.noDownvotes")}</p>
         ) : (
           <div className="monitoring-review-queue">
-            {reviewQueue.map((t) => (
-              <Link key={t.id} href={`/admin/monitoring/${t.id}`} className="monitoring-review-card">
-                <b>{t.query || "(empty question)"}</b>
-                <small>{t.forms.join(" / ") || "—"} · {t.hitSourceCount} sources hit · {t.totalLatencyMs}ms</small>
-                <em>{t.hitSourceCount === 0 ? "Likely cause: retrieval missed (missing material, chunking, or retrieval policy)" : "Likely cause: retrieved but answered wrong (generation or insufficient evidence) → open the trace for span attribution"}</em>
+            {reviewQueue.map((row) => (
+              <Link key={row.id} href={`/admin/monitoring/${row.id}`} className="monitoring-review-card">
+                <b>{row.query || t("adminMonitoring.emptyQuestion")}</b>
+                <small>{row.forms.join(" / ") || "—"} · {t("adminMonitoring.sourcesHit", { count: row.hitSourceCount })} · {row.totalLatencyMs}ms</small>
+                <em>{row.hitSourceCount === 0 ? t("adminMonitoring.causeMiss") : t("adminMonitoring.causeWrong")}</em>
               </Link>
             ))}
           </div>
@@ -198,42 +201,42 @@ export function AdminMonitoringPage({
       {/* Trace drill-down */}
       <section className="admin-panel">
         <PanelHead
-          eyebrow="Trace drill-down"
-          title={`Q&A log (${filtered.length} entries)`}
+          eyebrow={t("adminMonitoring.traceDrilldown")}
+          title={t("adminMonitoring.qaLog", { count: filtered.length })}
           action={
             <div className="monitoring-filters">
               {(["全部", "文档型", "图谱型", "知识页型"] as const).map((f) => (
-                <button key={f} type="button" className={formFilter === f ? "active" : ""} onClick={() => setFormFilter(f)}>{formLabel(f)}</button>
+                <button key={f} type="button" className={formFilter === f ? "active" : ""} onClick={() => setFormFilter(f)}>{formLabel(f, t)}</button>
               ))}
-              <button type="button" className={onlyFailed ? "active" : ""} onClick={() => setOnlyFailed((v) => !v)}>Failed only</button>
-              <button type="button" className={onlyDown ? "active" : ""} onClick={() => setOnlyDown((v) => !v)}>Downvotes only</button>
+              <button type="button" className={onlyFailed ? "active" : ""} onClick={() => setOnlyFailed((v) => !v)}>{t("adminMonitoring.failedOnly")}</button>
+              <button type="button" className={onlyDown ? "active" : ""} onClick={() => setOnlyDown((v) => !v)}>{t("adminMonitoring.downvotesOnly")}</button>
             </div>
           }
         />
-        <div className="admin-data-table monitoring-trace-table" role="table" aria-label="Q&A log">
+        <div className="admin-data-table monitoring-trace-table" role="table" aria-label={t("adminMonitoring.qaLogAria")}>
           <div role="row" className="admin-table-head">
-            <span>Question</span>
-            <span>Form</span>
-            <span>Citations</span>
-            <span>Latency</span>
-            <span>Token</span>
-            <span>Feedback</span>
-            <span>Status</span>
+            <span>{t("adminMonitoring.thQuestion")}</span>
+            <span>{t("adminMonitoring.thForm")}</span>
+            <span>{t("adminMonitoring.thCitations")}</span>
+            <span>{t("adminMonitoring.thLatency")}</span>
+            <span>{t("adminMonitoring.thToken")}</span>
+            <span>{t("adminMonitoring.thFeedback")}</span>
+            <span>{t("adminMonitoring.thStatus")}</span>
           </div>
-          {filtered.map((t) => (
-            <Link role="row" key={t.id} href={`/admin/monitoring/${t.id}`} className={`monitoring-trace-row${t.feedback?.vote === "down" ? " is-down" : ""}`}>
-              <b>{t.query || "(empty question)"}<small>{t.userName} · {t.route === "direct" ? "Direct answer" : "Knowledge retrieval"} · {t.scope ?? ""}</small></b>
-              <span>{t.forms.length ? t.forms.join(" / ") : "—"}</span>
-              <span>{t.citationCount} citations · {t.hitSourceCount} sources</span>
-              <span>{t.totalLatencyMs}ms</span>
-              <span>{t.totalTokens || "—"}</span>
-              <span>{t.feedback ? (t.feedback.vote === "up" ? "👍 Upvote" : "👎 Downvote") : "—"}</span>
-              <AdminStatusBadge status={t.success ? "正常" : "需复核"} />
+          {filtered.map((row) => (
+            <Link role="row" key={row.id} href={`/admin/monitoring/${row.id}`} className={`monitoring-trace-row${row.feedback?.vote === "down" ? " is-down" : ""}`}>
+              <b>{row.query || t("adminMonitoring.emptyQuestion")}<small>{row.userName} · {row.route === "direct" ? t("adminMonitoring.directAnswer") : t("adminMonitoring.knowledgeRetrieval")} · {row.scope ?? ""}</small></b>
+              <span>{row.forms.length ? row.forms.join(" / ") : "—"}</span>
+              <span>{t("adminMonitoring.citationsSources", { citations: row.citationCount, sources: row.hitSourceCount })}</span>
+              <span>{row.totalLatencyMs}ms</span>
+              <span>{row.totalTokens || "—"}</span>
+              <span>{row.feedback ? (row.feedback.vote === "up" ? t("adminMonitoring.upvote") : t("adminMonitoring.downvote")) : "—"}</span>
+              <AdminStatusBadge status={row.success ? "正常" : "需复核"} />
             </Link>
           ))}
           {filtered.length === 0 ? (
             <div role="row" className="admin-empty-ledger-row">
-              <b>No Q&A records match the current filters<small>Ask a few real questions from the workspace and traces will appear here.</small></b>
+              <b>{t("adminMonitoring.noRecordsTitle")}<small>{t("adminMonitoring.noRecordsBody")}</small></b>
             </div>
           ) : null}
         </div>
@@ -243,36 +246,37 @@ export function AdminMonitoringPage({
 }
 
 export function AdminTraceDetailPage({ trace }: { trace: StoredChatTrace }) {
+  const { t, formatDate } = useI18n();
   return (
-    <AdminShell active="/admin/monitoring" title="Q&A trace detail">
+    <AdminShell active="/admin/monitoring" title={t("adminMonitoring.traceShellTitle")}>
       <AdminPageHead
-        eyebrow="Trace detail"
-        title={trace.query || "(empty question)"}
-        description={`${trace.userName} · ${trace.route === "direct" ? "Direct answer" : "Knowledge retrieval"} · ${trace.scope ?? ""} · ${new Date(trace.createdAt).toLocaleString("en-US")}`}
+        eyebrow={t("adminMonitoring.traceDetail")}
+        title={trace.query || t("adminMonitoring.emptyQuestion")}
+        description={`${trace.userName} · ${trace.route === "direct" ? t("adminMonitoring.directAnswer") : t("adminMonitoring.knowledgeRetrieval")} · ${trace.scope ?? ""} · ${formatDate(trace.createdAt, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}`}
       />
 
       <section className="admin-panel">
-        <PanelHead eyebrow="This question" title="Result and key metrics" action={<AdminStatusBadge status={trace.success ? "正常" : "需复核"} />} />
+        <PanelHead eyebrow={t("adminMonitoring.thisQuestion")} title={t("adminMonitoring.resultAndMetrics")} action={<AdminStatusBadge status={trace.success ? "正常" : "需复核"} />} />
         <div className="monitoring-trace-summary">
-          <div><span>End-to-end latency</span><b>{trace.totalLatencyMs}ms</b></div>
-          <div><span>Citations / sources</span><b>{trace.citationCount} / {trace.hitSourceCount}</b></div>
-          <div><span>Token</span><b>{trace.totalTokens || "—"}</b></div>
-          <div><span>Form</span><b>{trace.forms.join(" / ") || "—"}</b></div>
-          <div><span>User feedback</span><b>{trace.feedback ? (trace.feedback.vote === "up" ? "👍 Upvote" : "👎 Downvote") : "Not rated"}</b></div>
+          <div><span>{t("adminMonitoring.endToEndLatency")}</span><b>{trace.totalLatencyMs}ms</b></div>
+          <div><span>{t("adminMonitoring.citationsSourcesLabel")}</span><b>{trace.citationCount} / {trace.hitSourceCount}</b></div>
+          <div><span>{t("adminMonitoring.token")}</span><b>{trace.totalTokens || "—"}</b></div>
+          <div><span>{t("adminMonitoring.form")}</span><b>{trace.forms.join(" / ") || "—"}</b></div>
+          <div><span>{t("adminMonitoring.userFeedback")}</span><b>{trace.feedback ? (trace.feedback.vote === "up" ? t("adminMonitoring.upvote") : t("adminMonitoring.downvote")) : t("adminMonitoring.notRated")}</b></div>
         </div>
         <div className="monitoring-answer-box">
-          <span>Answer</span>
+          <span>{t("adminMonitoring.answer")}</span>
           <p>{trace.answerExcerpt}</p>
         </div>
       </section>
 
       {/* Span tree: every step drills down; RETRIEVER shows hit evidence, LLM shows tokens and latency */}
       <section className="admin-panel">
-        <PanelHead eyebrow="Trace span tree" title="How this answer was produced" />
+        <PanelHead eyebrow={t("adminMonitoring.traceSpanTree")} title={t("adminMonitoring.howProduced")} />
         <div className="monitoring-span-tree">
           <article className="monitoring-span chain">
-            <header><b>CHAIN · one question</b><span>{trace.totalLatencyMs}ms</span></header>
-            <small>question → retrieval → generation</small>
+            <header><b>{t("adminMonitoring.chainOneQuestion")}</b><span>{trace.totalLatencyMs}ms</span></header>
+            <small>{t("adminMonitoring.chainFlow")}</small>
           </article>
           {trace.spans.map((s, i) => (
             <article key={i} className={`monitoring-span ${s.kind.toLowerCase()}`}>
@@ -282,24 +286,24 @@ export function AdminTraceDetailPage({ trace }: { trace: StoredChatTrace }) {
               </header>
               {s.kind === "RETRIEVER" ? (
                 <div className="monitoring-span-body">
-                  <small>{s.form} · source "{s.sourceName}" · {s.hitCount ?? 0} hits</small>
+                  <small>{t("adminMonitoring.spanRetriever", { form: s.form ?? "", source: s.sourceName ?? "", count: s.hitCount ?? 0 })}</small>
                   {(s.hits ?? []).map((h, hi) => (
-                    <blockquote key={hi}>{h.excerpt}{typeof h.score === "number" ? <em> · score {h.score.toFixed(3)}</em> : null}</blockquote>
+                    <blockquote key={hi}>{h.excerpt}{typeof h.score === "number" ? <em> · {t("adminMonitoring.score", { value: h.score.toFixed(3) })}</em> : null}</blockquote>
                   ))}
-                  {(s.hits ?? []).length === 0 ? <blockquote className="empty">No citable snippet from this source</blockquote> : null}
+                  {(s.hits ?? []).length === 0 ? <blockquote className="empty">{t("adminMonitoring.noCitableSnippet")}</blockquote> : null}
                 </div>
               ) : (
                 <div className="monitoring-span-body">
-                  <small>Model {s.model ?? "—"} · prompt {s.promptTokens ?? "—"} · completion {s.completionTokens ?? "—"} · total {s.totalTokens ?? "—"} tokens</small>
+                  <small>{t("adminMonitoring.spanModel", { model: s.model ?? "—", prompt: s.promptTokens ?? "—", completion: s.completionTokens ?? "—", total: s.totalTokens ?? "—" })}</small>
                 </div>
               )}
             </article>
           ))}
-          {trace.spans.length === 0 ? <p className="monitoring-empty">This was a direct answer with no retrieval span.</p> : null}
+          {trace.spans.length === 0 ? <p className="monitoring-empty">{t("adminMonitoring.directNoSpan")}</p> : null}
         </div>
       </section>
 
-      <Link className="monitoring-back" href="/admin/monitoring">← Back to Monitoring</Link>
+      <Link className="monitoring-back" href="/admin/monitoring">{t("adminMonitoring.backToMonitoring")}</Link>
     </AdminShell>
   );
 }

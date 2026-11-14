@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useI18n } from "../../lib/i18n/language-context";
 
 type Rec = {
   key: string;
@@ -40,39 +41,39 @@ const IconSearch = (
 const recs: Rec[] = [
   {
     key: "personal",
-    prompt: "Settle team experience into knowledge you can trust on demand",
-    solution: "Personal knowledge base",
-    posture: "Read",
+    prompt: "siteDemo.guidePersonalPrompt",
+    solution: "siteDemo.guidePersonalSolution",
+    posture: "siteDemo.guidePostureRead",
     color: "var(--c-personal)",
     soft: "var(--c-personal-soft)",
     bright: "var(--accent-bright)",
     icon: IconRead,
-    why: "Experience, research, and writing fit reading best—the system reads a pile of files and turns it into one browsable, question-ready, citable entry instead of retrieving from scratch every time.",
-    result: "Employees browse settled knowledge like an encyclopedia and ask follow-ups on any entry, each tracing back to its source files."
+    why: "siteDemo.guidePersonalWhy",
+    result: "siteDemo.guidePersonalResult"
   },
   {
     key: "relation",
-    prompt: "Map how customers, projects, and teams relate, and build profiles",
-    solution: "Relationship knowledge base",
-    posture: "Ask + Explore",
+    prompt: "siteDemo.guideRelationPrompt",
+    solution: "siteDemo.guideRelationSolution",
+    posture: "siteDemo.guidePostureRelation",
     color: "var(--c-relation)",
     soft: "var(--c-relation-soft)",
     bright: "var(--c-relation-bright)",
     icon: IconRelation,
-    why: "For account profiles, due diligence, and vertical research, the value is in who relates to whom and why. The system finds the key entities across files and their links, then answers with the relationship chain.",
-    result: "One question returns a relational answer with the chain visible inside it; expand into the graph view when you need to explore further."
+    why: "siteDemo.guideRelationWhy",
+    result: "siteDemo.guideRelationResult"
   },
   {
     key: "document",
-    prompt: "Turn policies, contracts, and reports into searchable evidence",
-    solution: "Document library",
-    posture: "Search",
+    prompt: "siteDemo.guideDocumentPrompt",
+    solution: "siteDemo.guideDocumentSolution",
+    posture: "siteDemo.guidePostureSearch",
     color: "var(--c-document)",
     soft: "var(--c-document-soft)",
     bright: "var(--c-document-bright)",
     icon: IconSearch,
-    why: "What formal documents are for is evidence with a source. The system searches hundreds of documents and highlights the exact paragraph that supports the answer.",
-    result: "Answer, plus the exact source paragraph and one click to the original, so every conclusion holds up and can be checked."
+    why: "siteDemo.guideDocumentWhy",
+    result: "siteDemo.guideDocumentResult"
   }
 ];
 
@@ -98,6 +99,7 @@ const hintExamples = [
 ];
 
 export function PainGuide() {
+  const { t } = useI18n();
   const [active, setActive] = useState<string>("personal");
   const [typed, setTyped] = useState("");
 
@@ -130,8 +132,8 @@ export function PainGuide() {
               }}
             >
               <span className="gc-icon">{r.icon}</span>
-              <span className="gc-prompt">{r.prompt}</span>
-              <span className="gc-sol">{r.solution}</span>
+              <span className="gc-prompt">{t(r.prompt)}</span>
+              <span className="gc-sol">{t(r.solution)}</span>
               <span className="gc-check" aria-hidden>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6 9 17l-5-5" />
@@ -150,23 +152,23 @@ export function PainGuide() {
         <input
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
-          placeholder="Or describe it yourself, e.g. I want account profiles for my sales team"
-          aria-label="Describe your scenario"
+          placeholder={t("siteDemo.guidePlaceholder")}
+          aria-label={t("siteDemo.guideDescribeAria")}
         />
         {matchedFromText && (
           <span className="guide-flag matched">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5" />
             </svg>
-            Matched for you
+            {t("siteDemo.guideMatched")}
           </span>
         )}
-        {noMatch && <span className="guide-flag warn">Try different words ↓</span>}
+        {noMatch && <span className="guide-flag warn">{t("siteDemo.guideTryDifferent")}</span>}
       </div>
 
       {noMatch && (
         <div className="guide-hint">
-          <span>Couldn't place that. Try describing it like this:</span>
+          <span>{t("siteDemo.guideNoMatchHint")}</span>
           {hintExamples.map((h) => (
             <button key={h.text} onClick={() => setTyped(h.text)}>
               {h.text}
@@ -189,29 +191,29 @@ export function PainGuide() {
           <div className="gr-head">
             <span className="gr-icon">{current.icon}</span>
             <div className="gr-head-text">
-              <span className="gr-badge">Recommended</span>
+              <span className="gr-badge">{t("siteDemo.guideRecommended")}</span>
               <h3>
-                {current.solution}
-                <span className="gr-posture">Mode · {current.posture}</span>
+                {t(current.solution)}
+                <span className="gr-posture">{t("siteDemo.guideMode", { posture: t(current.posture) })}</span>
               </h3>
             </div>
           </div>
           <div className="gr-grid">
             <div>
-              <span className="gr-label">Why this one</span>
-              <p>{current.why}</p>
+              <span className="gr-label">{t("siteDemo.guideWhyThis")}</span>
+              <p>{t(current.why)}</p>
             </div>
             <div>
-              <span className="gr-label">What you get</span>
-              <p>{current.result}</p>
+              <span className="gr-label">{t("siteDemo.guideWhatYouGet")}</span>
+              <p>{t(current.result)}</p>
             </div>
           </div>
           <div className="gr-actions">
             <Link href="/admin/new" className="btn btn-primary">
-              Start building this knowledge base
+              {t("siteDemo.guideStartBuilding")}
             </Link>
             <Link href="/app" className="btn btn-ghost">
-              Try the Q&amp;A in the workspace first
+              {t("siteDemo.guideTryWorkspace")}
             </Link>
           </div>
         </div>

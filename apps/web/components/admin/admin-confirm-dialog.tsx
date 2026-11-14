@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useI18n } from "../../lib/i18n/language-context";
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -18,11 +19,14 @@ export function ConfirmDialog({
   title,
   description,
   danger = false,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useI18n();
+  const resolvedConfirm = confirmText ?? t("common.confirm");
+  const resolvedCancel = cancelText ?? t("common.cancel");
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -75,14 +79,14 @@ export function ConfirmDialog({
             onClick={onCancel}
             style={{ padding: "8px 16px", fontSize: "14px", borderRadius: "8px", border: "1px solid #d1d5db", background: "#fff", color: "#374151", cursor: "pointer" }}
           >
-            {cancelText}
+            {resolvedCancel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             style={{ padding: "8px 16px", fontSize: "14px", borderRadius: "8px", border: "none", background: confirmBg, color: "#fff", cursor: "pointer" }}
           >
-            {confirmText}
+            {resolvedConfirm}
           </button>
         </div>
       </div>

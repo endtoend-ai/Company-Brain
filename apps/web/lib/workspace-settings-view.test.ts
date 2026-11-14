@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 
 import type { PlatformSnapshot } from "../components/app/platform-live";
 import { workspaceProfile } from "./fixtures/frontstage";
+import { en } from "./i18n/dictionaries/en";
+import { translate } from "./i18n";
 import { buildWorkspaceSettingsModel, normalizeWorkspaceRole, roleDisplayName } from "./workspace-settings-view";
+
+const t = (key: string, vars?: Record<string, string | number>) => translate(en, key, vars);
 
 const snapshot: PlatformSnapshot = {
   scenarios: [
@@ -21,11 +25,12 @@ describe("workspace settings view model", () => {
   test("normalizes roles for frontstage workspace settings", () => {
     expect(normalizeWorkspaceRole("admin")).toBe("admin");
     expect(normalizeWorkspaceRole("unknown")).toBe("member");
-    expect(roleDisplayName("owner")).toBe("Workspace owner");
+    expect(roleDisplayName("owner")).toBe("roles.owner");
+    expect(t(roleDisplayName("owner"))).toBe("Workspace owner");
   });
 
   test("builds settings rows from real snapshot counts", () => {
-    const model = buildWorkspaceSettingsModel({ profile: workspaceProfile, role: "member", snapshot });
+    const model = buildWorkspaceSettingsModel({ profile: workspaceProfile, role: "member", snapshot, t });
     expect(model.identityRows.find((row) => row.label === "Current role")?.value).toBe("Business member");
     expect(model.permissionRows.find((row) => row.label === "Company knowledge")?.value).toContain("1 assets");
     expect(model.auditRows.find((row) => row.label === "Pending tasks")?.status).toBe("review");

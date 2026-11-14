@@ -6,27 +6,12 @@ export type TemplateViewOption = {
   description: string;
 };
 
+/** Labels and descriptions are translation keys resolved at render time. */
 export const templateViewOptions: TemplateViewOption[] = [
-  {
-    id: "featured",
-    label: "Featured",
-    description: "Leads with recommended templates, their best-fit scenarios, and the creation path; best for a first choice."
-  },
-  {
-    id: "grid",
-    label: "Grid",
-    description: "Browse every template as cards to compare business themes and required inputs."
-  },
-  {
-    id: "list",
-    label: "List",
-    description: "Scan category, setup time, file types, and outputs at higher information density."
-  },
-  {
-    id: "compare",
-    label: "Compare",
-    description: "Compare best-fit work, accepted files, outputs, and review requirements side by side."
-  }
+  { id: "featured", label: "templates.viewFeatured", description: "templates.viewFeaturedDescription" },
+  { id: "grid", label: "templates.viewGrid", description: "templates.viewGridDescription" },
+  { id: "list", label: "templates.viewList", description: "templates.viewListDescription" },
+  { id: "compare", label: "templates.viewCompare", description: "templates.viewCompareDescription" }
 ];
 
 export function getTemplateViewOption(value: string | null | undefined): TemplateViewOption {

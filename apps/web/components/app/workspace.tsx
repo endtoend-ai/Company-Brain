@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../site/logo";
 import { ThemeToggle } from "../theme-provider";
+import { useI18n } from "../../lib/i18n/language-context";
 import {
   knowledgeBases,
   agents,
@@ -25,6 +26,16 @@ type Session = { id: string; title: string; agentId: string; msgs: Msg[] };
 const typeDot: Record<Rag, string> = { doc: "var(--c-document)", relation: "var(--c-relation)", compile: "var(--c-personal)" };
 let uid = 100;
 
+function displaySessionTitle(title: string, t: (key: string) => string) {
+  return title === "New chat" ? t("workspace.newChat") : title;
+}
+
+function ragLabelKey(rag: Rag) {
+  if (rag === "doc") return "workspace.rag.document";
+  if (rag === "relation") return "workspace.rag.relation";
+  return "workspace.rag.compile";
+}
+
 function emptySession(): Session {
   return { id: "s" + uid++, title: "New chat", agentId: "all", msgs: [] };
 }
@@ -42,6 +53,7 @@ function seeded(q: string, title: string): Session {
 }
 
 export function Workspace() {
+  const { t } = useI18n();
   const [sessions, setSessions] = useState<Session[]>([emptySession()]);
   const [activeId, setActiveId] = useState<string>(() => "");
   const [agentId, setAgentId] = useState("all");
@@ -205,15 +217,15 @@ export function Workspace() {
       <aside className={`cw-rail ${railOpen ? "open" : ""}`}>
         <div className="cw-rail-bd" onClick={() => setRailOpen(false)} />
         <div className="cw-rail-inner">
-          <Link href="/" className="cw-brand" aria-label="Back to the website"><Logo size={26} /></Link>
+          <Link href="/" className="cw-brand" aria-label={t("workspace.backToSite")}><Logo size={26} /></Link>
 
           <button className="cw-new" onClick={newChat}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-            New chat
+            {t("workspace.newChat")}
           </button>
 
           <div className="cw-rail-scroll">
-            <div className="cw-rail-sec">Space · switch knowledge scope</div>
+            <div className="cw-rail-sec">{t("workspace.spaceSwitch")}</div>
             {agents.map((a) => (
               <button key={a.id} className={`cw-agent ${agentId === a.id ? "on" : ""}`} onClick={() => selectAgent(a.id)}>
                 <span className="cw-agent-ic">{a.name[0]}</span>
@@ -221,7 +233,7 @@ export function Workspace() {
               </button>
             ))}
 
-            <div className="cw-rail-sec">Knowledge bases · attach to chat</div>
+            <div className="cw-rail-sec">{t("workspace.attachKb")}</div>
             {knowledgeBases.map((k) => (
               <button key={k.id} className={`cw-kb ${mounted.has(k.id) ? "on" : ""}`} onClick={() => toggleKB(k.id)}>
                 <span className="cw-kb-check" style={{ ["--kc" as any]: typeDot[k.type] }}>
@@ -232,7 +244,7 @@ export function Workspace() {
               </button>
             ))}
 
-            <div className="cw-rail-sec">Chat history</div>
+            <div className="cw-rail-sec">{t("workspace.chatHistory")}</div>
             {sessions.map((s) => (
               <div key={s.id} className={`cw-sess ${s.id === activeId ? "on" : ""}`}>
                 {editing === s.id ? (
@@ -247,9 +259,9 @@ export function Workspace() {
                   <>
                     <button className="cw-sess-main" onClick={() => switchTo(s.id)} onDoubleClick={() => setEditing(s.id)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L4 21l1.1-4a8.4 8.4 0 1 1 15.9-5.5z" /></svg>
-                      <span>{s.title}</span>
+                      <span>{displaySessionTitle(s.title, t)}</span>
                     </button>
-                    <button className="cw-sess-del" onClick={() => delSession(s.id)} aria-label="Delete conversation">
+                    <button className="cw-sess-del" onClick={() => delSession(s.id)} aria-label={t("workspace.deleteConversation")}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
                     </button>
                   </>
@@ -268,11 +280,11 @@ export function Workspace() {
       {/* ============ CENTER ============ */}
       <main className="cw-main">
         <header className="cw-main-top">
-          <button className="cw-burger" onClick={() => setRailOpen(true)} aria-label="Menu">
+          <button className="cw-burger" onClick={() => setRailOpen(true)} aria-label={t("workspace.menu")}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
           </button>
-          <span className="cw-main-title">{cur?.title ?? "New chat"}</span>
-          <span className="cw-agent-badge">Space · {agent.name}</span>
+          <span className="cw-main-title">{cur ? displaySessionTitle(cur.title, t) : t("workspace.newChat")}</span>
+          <span className="cw-agent-badge">{t("workspace.spaceBadge", { name: agent.name })}</span>
           <div className="cw-mounted">
             {mountedList.map((k) => (
               <span key={k.id} className="cw-mounted-chip"><span className="cw-kb-dot" style={{ background: typeDot[k.type] }} />{k.name}</span>
@@ -291,8 +303,8 @@ export function Workspace() {
                   <path d="M32 32 13 20M32 32l19-12M32 32 13 44M32 32l19 12" stroke="var(--accent)" strokeWidth="1" opacity="0.45" />
                 </svg>
               </span>
-              <h2 className="cw-empty-h">{agent.id === "all" ? "Ask CompanyBrain" : agent.name}</h2>
-              <p className="cw-empty-p">Current space "{agent.name}" · {agent.desc}. Try:</p>
+              <h2 className="cw-empty-h">{agent.id === "all" ? t("workspace.askCompanyBrain") : agent.name}</h2>
+              <p className="cw-empty-p">{t("workspace.emptyPrompt", { name: agent.name, desc: agent.desc })}</p>
               <div className="cw-starters">
                 {agent.starters.map((s) => (
                   <button key={s.q} className="cw-starter" onClick={() => send(s.q)}>
@@ -322,10 +334,10 @@ export function Workspace() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(draft); } }}
-              placeholder="Ask CompanyBrain... answers include citations (Enter to send)"
+              placeholder={t("workspace.askPlaceholder")}
               rows={1}
             />
-            <button className="cw-send" onClick={() => send(draft)} aria-label="Send">
+            <button className="cw-send" onClick={() => send(draft)} aria-label={t("workspace.send")}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </button>
           </div>
@@ -335,8 +347,8 @@ export function Workspace() {
       {/* ============ RIGHT EVIDENCE ============ */}
       <aside className="cw-ev">
         <div className="cw-ev-head">
-          <span>{activeTask ? "Task canvas" : "Retrieved evidence"}</span>
-          {activeTask ? <span className="cw-ev-via">{activeTask.status === "ready" ? "Shareable" : "Draft"}</span> : active && <span className="cw-ev-via" style={{ color: ragMeta[active.rag].c, background: ragMeta[active.rag].soft }}>{ragMeta[active.rag].label}</span>}
+          <span>{activeTask ? t("workspace.taskCanvas") : t("workspace.retrievedEvidence")}</span>
+          {activeTask ? <span className="cw-ev-via">{activeTask.status === "ready" ? t("workspace.shareable") : t("status.draft")}</span> : active && <span className="cw-ev-via" style={{ color: ragMeta[active.rag].c, background: ragMeta[active.rag].soft }}>{t(ragLabelKey(active.rag))}</span>}
         </div>
         <div className="cw-ev-body">
           {activeTask ? (
@@ -344,7 +356,7 @@ export function Workspace() {
           ) : !active ? (
             <div className="cw-ev-empty">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
-              <p>After you ask, the retrieved files, source text, and evidence appear here. When an answer is ready for follow-up, task actions appear too.</p>
+              <p>{t("workspace.evidenceEmpty")}</p>
             </div>
           ) : (
             <>
@@ -385,6 +397,7 @@ function Bubble({
   onOpenEvidence: () => void;
   onStartTask: (taskId: string) => void;
 }) {
+  const { t } = useI18n();
   if (m.role === "user")
     return (
       <div className="cw-msg user">
@@ -404,7 +417,7 @@ function Bubble({
             <div className="cw-ans-tools">
               <button className="cw-ans-ev" onClick={onOpenEvidence}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
-                Citations {m.answer.evidence.filter((e) => e.kind !== "graph").length || m.answer.evidence.length}
+                {t("workspace.citations", { count: m.answer.evidence.filter((e) => e.kind !== "graph").length || m.answer.evidence.length })}
               </button>
               {m.answer.actions?.map((action) => (
                 <ActionCard key={action.id} action={action} onStartTask={onStartTask} />
@@ -418,9 +431,10 @@ function Bubble({
 }
 
 function ActionCard({ action, onStartTask }: { action: ChatAction; onStartTask: (taskId: string) => void }) {
+  const { t } = useI18n();
   return (
     <button className="cw-action-card" onClick={() => onStartTask(action.taskId)}>
-      <span>Next action</span>
+      <span>{t("workspace.nextAction")}</span>
       <b>{action.label}</b>
       <em>{action.description}</em>
     </button>
@@ -439,11 +453,12 @@ function renderCites(text: string, onCite: (i: number) => void) {
 }
 
 function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="cw-task">
       <button className="cw-task-back" onClick={onBack}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-        Back to evidence
+        {t("workspace.backToEvidence")}
       </button>
 
       <section className="cw-task-hero">
@@ -453,7 +468,7 @@ function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void
       </section>
 
       <section className="cw-task-block">
-        <b>Task steps</b>
+        <b>{t("workspace.taskSteps")}</b>
         <div className="cw-task-steps">
           {task.steps.map((step, index) => (
             <div key={step.id} className={`cw-task-step ${step.status}`}>
@@ -468,7 +483,7 @@ function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void
       </section>
 
       <section className="cw-task-block">
-        <b>Confirmed inputs</b>
+        <b>{t("workspace.confirmedInputs")}</b>
         <div className="cw-task-kv">
           {task.inputs.map((input) => (
             <span key={input.label}><em>{input.label}</em>{input.value}</span>
@@ -477,7 +492,7 @@ function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void
       </section>
 
       <section className="cw-task-block">
-        <b>Evidence used</b>
+        <b>{t("workspace.evidenceUsed")}</b>
         <div className="cw-task-evidence">
           {task.evidence.map((item) => (
             <span key={item.label}><em>{item.label}</em>{item.detail}</span>
@@ -497,14 +512,14 @@ function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void
       </section>
 
       <div className="cw-task-actions">
-        <button>Ask for changes</button>
-        <button>Save to task center</button>
-        <button>Share deliverable</button>
-        <button>Capture as a team scenario</button>
+        <button>{t("workspace.askForChanges")}</button>
+        <button>{t("workspace.saveToTaskCenter")}</button>
+        <button>{t("workspace.shareDeliverable")}</button>
+        <button>{t("workspace.captureAsTeamScenario")}</button>
       </div>
 
       <div className="cw-task-follow">
-        <b>You can continue with</b>
+        <b>{t("workspace.continueWith")}</b>
         {task.followUps.map((item) => (
           <span key={item}>{item}</span>
         ))}
@@ -515,31 +530,32 @@ function TaskCanvasView({ task, onBack }: { task: TaskCanvas; onBack: () => void
 
 /* ---------- evidence renderers ---------- */
 function EvidenceView({ ev, idx, active, tone, onDoc, onGraph }: { ev: Evidence; idx: number; active: boolean; tone: string; onDoc: (doc: string) => void; onGraph: () => void }) {
+  const { t } = useI18n();
   if (ev.kind === "chunk")
     return (
       <div className={`cw-evc ${active ? "lit" : ""}`} style={{ ["--rc" as any]: tone }}>
         <div className="cw-evc-top"><span className="cw-evc-n">{idx + 1}</span><strong>{ev.title}</strong></div>
         <p className="cw-evc-snip">{ev.snippet}</p>
         <div className="cw-evc-foot">
-          <span className="cw-evc-score"><i style={{ width: `${Math.round(ev.score * 100)}%`, background: tone }} />Relevance {Math.round(ev.score * 100)}%</span>
-          <button className="cw-evc-open" onClick={() => onDoc(ev.doc)}>Open source text</button>
+          <span className="cw-evc-score"><i style={{ width: `${Math.round(ev.score * 100)}%`, background: tone }} />{t("workspace.relevance", { count: Math.round(ev.score * 100) })}</span>
+          <button className="cw-evc-open" onClick={() => onDoc(ev.doc)}>{t("workspace.openSourceText")}</button>
         </div>
       </div>
     );
   if (ev.kind === "chain")
     return (
       <div className={`cw-evc ${active ? "lit" : ""}`} style={{ ["--rc" as any]: tone }}>
-        <div className="cw-evc-top"><span className="cw-evc-n">{idx + 1}</span><strong>Relationship chain</strong></div>
+        <div className="cw-evc-top"><span className="cw-evc-n">{idx + 1}</span><strong>{t("workspace.relationshipChain")}</strong></div>
         <div className="cw-chain">{ev.items.map((c, i) => <span key={i}>{c}</span>)}</div>
       </div>
     );
   if (ev.kind === "graph")
     return (
       <div className="cw-evc cw-evgraph" style={{ ["--rc" as any]: tone }}>
-        <div className="cw-evc-top"><strong>Retrieved relationship subgraph</strong></div>
+        <div className="cw-evc-top"><strong>{t("workspace.relationshipSubgraph")}</strong></div>
         <MiniGraph nodes={ev.nodes} edges={ev.edges} tone={tone} />
         <button className="cw-evc-expand" onClick={onGraph}>
-          Open graph explorer
+          {t("workspace.openGraphExplorer")}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
         </button>
       </div>
@@ -555,7 +571,7 @@ function EvidenceView({ ev, idx, active, tone, onDoc, onGraph }: { ev: Evidence;
     <div className={`cw-evc ${active ? "lit" : ""}`} style={{ ["--rc" as any]: tone }}>
       <div className="cw-evc-top"><span className="cw-evc-n">{idx + 1}</span><strong>{ev.title}</strong></div>
       <p className="cw-evc-snip">{ev.meta}</p>
-      <div className="cw-evc-foot"><span className="cw-evc-open">Browse entry</span></div>
+      <div className="cw-evc-foot"><span className="cw-evc-open">{t("workspace.browseEntry")}</span></div>
     </div>
   );
 }

@@ -112,10 +112,12 @@
 
 /* ---------- Typography families ---------- */
 :root {
-  --font-display: "Fraunces", "Songti SC", "Noto Serif SC", Georgia, serif;
-  --font-body: "Hanken Grotesk", "PingFang SC", "Microsoft YaHei", system-ui,
-    -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-display: "Fraunces", "Songti SC", "Noto Serif SC", "Source Han Serif SC",
+    Georgia, serif;
+  --font-body: "Hanken Grotesk", "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    "Hiragino Sans GB", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,
+    "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
 
   --maxw: 1200px;
   --maxw-wide: 1340px;
@@ -354,6 +356,67 @@ img, svg, canvas {
   color: var(--accent);
   border-color: var(--accent);
   transform: rotate(18deg);
+}
+
+/* ---------- Language switcher ---------- */
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+}
+.language-toggle button {
+  min-width: 38px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.language-toggle button:hover {
+  color: var(--accent);
+}
+.language-toggle button.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.language-toggle button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.language-select {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.language-select > span {
+  color: var(--text-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.language-select select {
+  min-width: 180px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text-1);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
+.language-select select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* ---------- Motion utilities ---------- */
@@ -5354,6 +5417,12 @@ img, svg, canvas {
 
 .auth-topbar a {
   text-decoration: none;
+}
+
+.auth-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .auth-grid {

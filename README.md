@@ -93,6 +93,21 @@ flowchart LR
 Further reading: [architecture](docs/ARCHITECTURE.md), [service boundaries](docs/SERVICE_BOUNDARIES.md),
 [benchmarks](docs/BENCHMARKS.md), [platform API](docs/API.md).
 
+## Language support / 多语言支持
+
+The workspace ships with two UI languages: English (`en`) and Simplified Chinese (`zh-CN`).
+Use the language switcher in the site header, the workspace shell, the admin console header, the
+login page, and workspace settings. The choice is stored in the `cb_locale` cookie and
+`localStorage` so it survives reloads and is read server-side for SSR metadata and `<html lang>`.
+
+- Dictionaries live in `apps/web/lib/i18n/dictionaries/en.ts` and `zh-CN.ts`; the shared key shape
+  is defined in `apps/web/lib/i18n/dictionaries/en.ts` (`Dictionary`).
+- `zh-CN` is structurally typed against `en`, so adding a key in only one dictionary is a compile
+  error. Knowledge base content, documents, and answers stay in the language they were stored in.
+- To add a locale, copy `en.ts`, translate every leaf, add the locale to
+  `apps/web/lib/i18n/types.ts` (`Locale`, `LOCALES`, `isLocale`), and register the dictionary in
+  `apps/web/lib/i18n/index.ts`.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). No third-party source code is vendored in this repository; the

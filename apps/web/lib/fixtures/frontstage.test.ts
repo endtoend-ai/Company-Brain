@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { en } from "../i18n/dictionaries/en";
+import { translate } from "../i18n";
 import {
   createScenarioDraft,
   frontstageNav,
@@ -19,6 +21,8 @@ import {
   workspaceNav,
   workspaceProfile
 } from "./frontstage";
+
+const t = (key: string) => translate(en, key);
 
 describe("frontstage fixtures", () => {
   test("navigation follows the approved product model", () => {
@@ -124,9 +128,10 @@ describe("frontstage fixtures", () => {
     const availability = scenarioAvailability(scenario);
     const workbench = scenarioWorkbenchById(scenario.id)!;
 
-    expect(availability.label).toBe("Ready");
-    expect(availability.description).toContain("Ingest, knowledge construction, and publishing are complete");
-    expect(workbench.tabs.map((tab) => tab.label)).toEqual(["Use", "Files", "Business tasks", "Q&A", "Deliverables", "Manage"]);
+    expect(availability.label).toBe("platform.status.ready");
+    expect(t(availability.label)).toBe("Ready");
+    expect(t(availability.description)).toContain("Ingest, knowledge construction, and publishing are complete");
+    expect(workbench.tabs.map((tab) => t(tab.label))).toEqual(["Use", "Files", "Business tasks", "Q&A", "Deliverables", "Manage"]);
     expect(workbench.dataSources.every((source) => source.status === "Ingested")).toBe(true);
     expect(workbench.outputs.every((output) => output.status === "Ready")).toBe(true);
     expect(workbench.tasks[0]?.userMessage).toContain("can use the scenario now");

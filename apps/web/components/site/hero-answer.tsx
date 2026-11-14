@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "../../lib/i18n/language-context";
 
 type Demo = {
   q: string;
@@ -46,6 +47,7 @@ const demos: Demo[] = [
 ];
 
 export function HeroAnswer() {
+  const { t } = useI18n();
   const [i, setI] = useState(0);
   const [phase, setPhase] = useState<"ask" | "think" | "answer">("ask");
 
@@ -65,12 +67,12 @@ export function HeroAnswer() {
   const d = demos[i];
 
   return (
-    <div className="hero-card" role="img" aria-label="Ask CompanyBrain example: a question, an answer with citations, and its sources">
+    <div className="hero-card" role="img" aria-label={t("siteDemo.heroAria")}>
       <div className="hero-card-bar">
         <span className="hero-card-dot" />
-        <span className="hero-card-title mono">Ask CompanyBrain</span>
+        <span className="hero-card-title mono">{t("siteDemo.heroTitle")}</span>
         <span className="hero-card-live">
-          <span className="live-dot" /> Live retrieval
+          <span className="live-dot" /> {t("siteDemo.heroLive")}
         </span>
       </div>
 
@@ -87,7 +89,7 @@ export function HeroAnswer() {
             <span className="tdot" />
             <span className="tdot" />
             <span className="tdot" />
-            <em>Searching your knowledge bases and checking the evidence…</em>
+            <em>{t("siteDemo.heroThinking")}</em>
           </div>
         )}
 
@@ -99,12 +101,12 @@ export function HeroAnswer() {
                 className="hero-a-lib"
                 style={{ color: d.libColor, borderColor: d.libColor }}
               >
-                Matched · {d.lib}
+                {t("siteDemo.heroMatched", { library: d.lib })}
               </span>
             </div>
             <p className="hero-a-text">{d.answer}</p>
             <div className="hero-cites">
-              <span className="hero-cites-label">{d.cites.length} {d.cites.length === 1 ? "citation" : "citations"}</span>
+              <span className="hero-cites-label">{d.cites.length} {d.cites.length === 1 ? t("siteDemo.heroCitation") : t("siteDemo.heroCitations")}</span>
               {d.cites.map((c, k) => (
                 <div className="hero-cite" key={k}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -115,7 +117,7 @@ export function HeroAnswer() {
                     <strong>{c.title}</strong>
                     <span>{c.meta}</span>
                   </div>
-                  <span className="hero-cite-open">Open</span>
+                  <span className="hero-cite-open">{t("siteDemo.heroOpen")}</span>
                 </div>
               ))}
             </div>
@@ -127,7 +129,7 @@ export function HeroAnswer() {
         {demos.map((_, k) => (
           <button
             key={k}
-            aria-label={`Example ${k + 1}`}
+            aria-label={t("siteDemo.heroExample", { index: k + 1 })}
             className={k === i ? "hd active" : "hd"}
             onClick={() => setI(k)}
           />

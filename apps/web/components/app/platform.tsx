@@ -5,6 +5,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Logo } from "../site/logo";
 import { ThemeToggle } from "../theme-provider";
+import { LanguageSwitcher } from "../language-switcher";
+import { useI18n } from "../../lib/i18n/language-context";
+import { workspaceNavKeys } from "../../lib/i18n/nav-keys";
 import { useAuth } from "../../lib/auth-context";
 import {
   buildScenarioProductSurface,
@@ -160,6 +163,7 @@ type GlobalChatMessage = {
 
 // End-user up/down vote on an answer -> writes a real backend trace (downvotes enter the admin improvement queue).
 function AnswerFeedback({ traceId }: { traceId?: string }) {
+  const { t } = useI18n();
   const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [tip, setTip] = useState("");
   if (!traceId) return null;
@@ -172,15 +176,15 @@ function AnswerFeedback({ traceId }: { traceId?: string }) {
         body: JSON.stringify({ vote: v })
       });
       const d = await r.json().catch(() => ({}));
-      setTip(d.message ?? (v === "up" ? "Thanks for the feedback" : "Feedback recorded"));
+      setTip(d.message ?? (v === "up" ? t("platform.feedback.thanks") : t("platform.feedback.recorded")));
     } catch {
-      setTip("Could not submit feedback");
+      setTip(t("platform.feedback.error"));
     }
   };
   return (
-    <div className="answer-feedback" aria-label="Rate this answer">
-      <button type="button" className={vote === "up" ? "active" : ""} onClick={() => send("up")} aria-label="Helpful">👍</button>
-      <button type="button" className={vote === "down" ? "active" : ""} onClick={() => send("down")} aria-label="Not helpful">👎</button>
+    <div className="answer-feedback" aria-label={t("platform.feedback.rateAnswer")}>
+      <button type="button" className={vote === "up" ? "active" : ""} onClick={() => send("up")} aria-label={t("platform.feedback.helpful")}>👍</button>
+      <button type="button" className={vote === "down" ? "active" : ""} onClick={() => send("down")} aria-label={t("platform.feedback.notHelpful")}>👎</button>
       {tip ? <span className="answer-feedback-tip">{tip}</span> : null}
     </div>
   );
@@ -327,10 +331,54 @@ const navGlyphs: Record<string, string> = {
 };
 
 const visibilityOptions: Array<{ value: Visibility; label: string; description: string }> = [
-  { value: "private", label: "Private", description: "Only you can see these files and answers; nothing enters a team space." },
-  { value: "team", label: "Team", description: "Shared with Sales, Solutions Engineering, Legal, and other teams." },
-  { value: "company", label: "Company", description: "Requires a stricter source and answer review before publishing." }
+  { value: "private", label: "visibility.private", description: "platform.visibility.privateDescription" },
+  { value: "team", label: "visibility.team", description: "platform.visibility.teamDescription" },
+  { value: "company", label: "visibility.company", description: "platform.visibility.companyDescription" }
 ];
+
+const scenarioStatusFilters = [
+  { value: "all", label: "platform.status.all" },
+  { value: "available", label: "platform.status.available" },
+  { value: "processing", label: "platform.status.processing" },
+  { value: "pending_review", label: "platform.status.pendingReview" },
+  { value: "failed", label: "platform.status.failed" }
+] as const;
+
+function scenarioStatusMatchesFilter(status: ScenarioInstance["status"] | ProcessingTask["status"], value: string) {
+  if (value === "all") return true;
+  if (value === "available") return status === "ready";
+  if (value === "pending_review") return status === "waiting_review";
+  if (value === "failed") return status === "failed";
+  if (value === "processing") return status !== "ready" && status !== "failed";
+  return false;
+}
+
+const taskStatusFilters = [
+  { value: "All statuses", label: "platform.task.allStatuses" },
+  { value: "Pending admin review", label: "platform.task.pendingAdminReview" },
+  { value: "Processing", label: "platform.task.processing" },
+  { value: "Available", label: "platform.task.available" }
+] as const;
+
+const taskKindFilters = [
+  { value: "All types", label: "platform.task.allTypes" },
+  { value: "File intake", label: "platform.task.fileIntake" },
+  { value: "Admin review", label: "platform.task.adminReview" },
+  { value: "Publish review", label: "platform.task.publishReview" }
+] as const;
+
+const taskSortOptions = [
+  { value: "Recently updated", label: "platform.task.recentlyUpdated" },
+  { value: "Submitted", label: "platform.task.submitted" },
+  { value: "Progress", label: "platform.task.progress" }
+] as const;
+
+function taskStatusLabelKey(task: ProcessingTask) {
+  if (task.waitingFor === "Admin" || task.status === "submitted") return "platform.task.pendingAdminReview";
+  if (task.status === "ready") return "platform.task.available";
+  if (task.status === "failed") return "platform.status.failed";
+  return "platform.task.processing";
+}
 
 export function AskHome({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
   return <WorkspaceHomePage initialSnapshot={initialSnapshot} />;
@@ -393,6 +441,7 @@ function usePlatformSnapshot(initialSnapshot?: PlatformSnapshot) {
 }
 
 export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
+  const { t } = useI18n();
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [homeAttachments, setHomeAttachments] = useState<File[]>([]);
@@ -427,21 +476,21 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
   }
 
   return (
-    <FrontstageShell active="/app" title="Overview" eyebrow={workspaceProfile.workspaceName} initialSnapshot={snapshot}>
+    <FrontstageShell active="/app" title={t("shell.navOverview")} eyebrow={workspaceProfile.workspaceName} initialSnapshot={snapshot}>
       <div className="home-workspace-page">
-        <section className="brain-ops-strip home-metric-strip" aria-label="Workspace entry points">
-          <KpiCard href="/app/scenarios" label="Scenarios" value={String(metrics.scenarioCount)} helper="Review available and in-flight scenarios" />
-          <KpiCard href="/app/knowledge" label="Available knowledge" value={String(metrics.readyKnowledgeCount)} helper="See files your scenarios can use today" />
-          <KpiCard href="/app/tasks" label="Pending tasks" value={String(metrics.pendingTaskCount)} helper="Track ingest and review progress" />
-          <KpiCard href="/app/templates" label="Templates" value={String(officialTemplates.length)} helper="Pick a template to create a new scenario" />
+        <section className="brain-ops-strip home-metric-strip" aria-label={t("shell.entryPointsLabel")}>
+          <KpiCard href="/app/scenarios" label={t("shell.navScenarios")} value={String(metrics.scenarioCount)} helper={t("shell.kpiScenariosHelper")} />
+          <KpiCard href="/app/knowledge" label={t("shell.kpiKnowledge")} value={String(metrics.readyKnowledgeCount)} helper={t("shell.kpiKnowledgeHelper")} />
+          <KpiCard href="/app/tasks" label={t("shell.kpiPendingTasks")} value={String(metrics.pendingTaskCount)} helper={t("shell.kpiPendingTasksHelper")} />
+          <KpiCard href="/app/templates" label={t("shell.navTemplates")} value={String(officialTemplates.length)} helper={t("shell.kpiTemplatesHelper")} />
         </section>
 
-        <section className="brain-command-center home-start-center" aria-label="Ask CompanyBrain">
+        <section className="brain-command-center home-start-center" aria-label={t("shell.askRegionLabel")}>
           <div className="brain-command-main">
             <div className="brain-command-title">
               <span>CompanyBrain</span>
-              <h1>Good morning. What do you need to know?</h1>
-              <p>Connected to company-wide data for deep insight and compliant guidance.</p>
+              <h1>{t("shell.greeting")}</h1>
+              <p>{t("shell.greetingBody")}</p>
             </div>
 
             <form
@@ -452,14 +501,14 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
               }}
             >
               <div className="home-ask-head">
-                <label htmlFor="brain-home-question">Ask CompanyBrain</label>
-                <span>Supports PDF, Word, Markdown, spreadsheets, images, audio, and video</span>
+                <label htmlFor="brain-home-question">{t("shell.askLabel")}</label>
+                <span>{t("shell.askFileHint")}</span>
               </div>
               <textarea
                 id="brain-home-question"
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
-                placeholder="Ask a complex business question, e.g. compare West Coast pipeline across the last three quarters..."
+                placeholder={t("shell.askPlaceholder")}
                 rows={3}
               />
               {homeAttachments.length ? (
@@ -467,10 +516,10 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
                   {homeAttachments.map((file) => <span key={`${file.name}-${file.size}`}>{formatAttachmentMeta(file)}</span>)}
                 </div>
               ) : null}
-              <div className="brain-ask-actions home-context-tools" aria-label="Question context">
+              <div className="brain-ask-actions home-context-tools" aria-label={t("shell.questionContext")}>
                 <label htmlFor="home-ask-attachments" className="home-context-upload">
-                  <b>Upload files</b>
-                  <span>Docs / spreadsheets / images / audio & video</span>
+                  <b>{t("shell.uploadFiles")}</b>
+                  <span>{t("shell.uploadHint")}</span>
                   <input
                     id="home-ask-attachments"
                     type="file"
@@ -480,67 +529,67 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
                   />
                 </label>
                 <label className="home-context-field">
-                  <span>Knowledge scope</span>
+                  <span>{t("shell.knowledgeScope")}</span>
                   <select
                     value={homeKnowledgeScope}
                     onChange={(event) => setHomeKnowledgeScope(event.currentTarget.value as "company" | "team" | "private")}
                   >
-                    <option value="company">Company-wide</option>
-                    <option value="team">Team knowledge</option>
-                    <option value="private">Personal files</option>
+                    <option value="company">{t("shell.scopeCompany")}</option>
+                    <option value="team">{t("shell.scopeTeam")}</option>
+                    <option value="private">{t("shell.scopePrivate")}</option>
                   </select>
                 </label>
                 <label className="home-context-field">
-                  <span>Output format</span>
+                  <span>{t("shell.outputFormat")}</span>
                   <select
                     value={homeOutputMode}
                     onChange={(event) => setHomeOutputMode(event.currentTarget.value as "answer" | "report" | "table")}
                   >
-                    <option value="answer">Direct answer</option>
-                    <option value="report">Report draft</option>
-                    <option value="table">Table summary</option>
+                    <option value="answer">{t("shell.outputDirect")}</option>
+                    <option value="report">{t("shell.outputReport")}</option>
+                    <option value="table">{t("shell.outputTable")}</option>
                   </select>
                 </label>
-                <button type="submit" className="home-context-send" aria-label="Send question"><span aria-hidden>➤</span></button>
+                <button type="submit" className="home-context-send" aria-label={t("shell.sendQuestion")}><span aria-hidden>➤</span></button>
               </div>
             </form>
           </div>
 
           <div className="home-template-entry">
             <div>
-              <b>First time here</b>
-              <span>Start from a template to create a reusable scenario, then add files and let the admin process them.</span>
+              <b>{t("shell.firstTime")}</b>
+              <span>{t("shell.firstTimeBody")}</span>
             </div>
-            <Link href="/app/templates">Choose a template</Link>
+            <Link href="/app/templates">{t("shell.chooseTemplate")}</Link>
           </div>
 
-          <aside className="brain-command-side home-next-side" aria-label="What you can continue">
+          <aside className="brain-command-side home-next-side" aria-label={t("shell.continueLabel")}>
             <section>
               <div className="brain-side-title">
-                <span>Ready to use</span>
-                <Link href="/app/scenarios">View all</Link>
+                <span>{t("shell.readyToUse")}</span>
+                <Link href="/app/scenarios">{t("shell.viewAll")}</Link>
               </div>
               <div className="brain-ready-list">
                 {readyPreview.map((scenario) => <ScenarioCompactCard key={scenario.id} scenario={scenario} />)}
                 {state !== "loading" && !primaryScenario ? (
-                  <Link className="ux-task-mini-row" href="/app/templates"><b>No scenarios yet</b><span>Start from a template or create a scenario and upload files</span></Link>
+                  <Link className="ux-task-mini-row" href="/app/templates"><b>{t("shell.noScenariosYet")}</b><span>{t("shell.noScenariosHint")}</span></Link>
                 ) : null}
                 {readyScenarios.length > readyPreview.length ? (
-                  <Link className="home-more-row" href="/app/scenarios"> {readyScenarios.length - readyPreview.length} more available scenarios</Link>
+                  <Link className="home-more-row" href="/app/scenarios">{t("shell.moreScenarios", { count: readyScenarios.length - readyPreview.length })}</Link>
                 ) : null}
               </div>
             </section>
             <section>
               <div className="brain-side-title">
-                <span>Needs attention</span>
-                <Link href="/app/tasks">View all</Link>
+                <span>{t("shell.needsAttention")}</span>
+                <Link href="/app/tasks">{t("shell.viewAll")}</Link>
               </div>
               <div className="brain-task-list">
                 {pendingTasks.length > 0
                   ? pendingPreview.map((task) => <TaskMini key={task.id} task={task} />)
-                  : <Link className="ux-task-mini-row" href="/app/templates"><b>No pending tasks</b><span>Create a new scenario from a template</span></Link>}
+                  : <Link className="ux-task-mini-row" href="/app/templates"><b>{t("shell.noPendingTasks")}</b><span>{t("shell.noPendingTasksHint")}</span></Link>}
                 {pendingTasks.length > pendingPreview.length ? (
-                  <Link className="home-more-row" href="/app/tasks"> {pendingTasks.length - pendingPreview.length} more tasks</Link>
+                  <Link className="home-more-row" href="/app/tasks">{t("shell.moreTasks", { count: pendingTasks.length - pendingPreview.length })}</Link>
                 ) : null}
               </div>
             </section>
@@ -552,6 +601,7 @@ export function WorkspaceHomePage({ initialSnapshot }: { initialSnapshot?: Platf
 }
 
 export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuery?: string; initialSnapshot?: PlatformSnapshot } = {}) {
+  const { t } = useI18n();
   const [input, setInput] = useState("");
   const [sessions, setSessions] = useState<GlobalChatSessionSummary[]>([]);
   const [activeSession, setActiveSession] = useState<GlobalChatSession | null>(null);
@@ -573,14 +623,14 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
         id: session.id,
         title: session.title,
         description: session.latestMessage,
-        meta: `${scopeLabel(session.scope)} · ${session.updatedAtText}`,
+        meta: `${t(scopeLabel(session.scope))} · ${session.updatedAtText}`,
         action: () => void openSession(session.id)
       }))
     : readyScenarios.slice(0, 3).map((scenario) => ({
         id: scenario.id,
         title: scenario.name,
         description: scenario.description,
-        meta: `${visibilityText(scenario.visibility)} · ${scenario.sourceCount} sources`,
+        meta: `${t(visibilityText(scenario.visibility))} · ${t("platform.chat.sourcesCount", { count: scenario.sourceCount })}`,
         action: () => setInput(`${scenario.name} — what are the key facts?`)
       }));
   const latestAssistant = [...(activeSession?.messages ?? [])].reverse().find((item) => item.role === "assistant");
@@ -611,14 +661,14 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
     try {
       const response = await fetch("/api/platform/chat-sessions", { headers: requestHeaders(), cache: "no-store" });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not load chat history.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.loadError"));
       const nextSessions = Array.isArray(body.sessions) ? body.sessions as GlobalChatSessionSummary[] : [];
       setSessions(nextSessions);
       if (selectSessionId) {
         await openSession(selectSessionId, false);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not load chat history.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.loadError"));
     } finally {
       setLoadingSessions(false);
     }
@@ -630,14 +680,14 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
     try {
       const response = await fetch(`/api/platform/chat-sessions/${sessionId}`, { headers: requestHeaders(), cache: "no-store" });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not open this chat.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.openError"));
       setActiveSession(body.session as GlobalChatSession);
       setAnimatingId(null);
       setScope((body.session as GlobalChatSession).scope);
       setOutputMode((body.session as GlobalChatSession).outputMode);
       if (refreshHistory) await loadSessions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not open this chat.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.openError"));
     } finally {
       setPending(false);
     }
@@ -675,7 +725,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
         body: JSON.stringify({ query: q, scope, output_mode: outputMode })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not start a chat.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.startError"));
       const createdSession = body.session as GlobalChatSession;
       setActiveSession(createdSession);
       const lastCreatedMsg = createdSession.messages[createdSession.messages.length - 1];
@@ -684,7 +734,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
       // createdSession 已是完整 POST 响应，activeSession.id 仍可高亮该会话。
       await loadSessions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not start a chat.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.startError"));
       setInput(q);       // Restore the input on failure so the user message is not lost.
       setActiveSession(null);
       setAnimatingId(null);
@@ -720,14 +770,14 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
         body: JSON.stringify({ query: q })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not send the follow-up.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.sendError"));
       const appendedSession = body.session as GlobalChatSession;
       setActiveSession(appendedSession);
       const lastAppendedMsg = appendedSession.messages[appendedSession.messages.length - 1];
       if (lastAppendedMsg?.role === "assistant") setAnimatingId(lastAppendedMsg.id);
       await loadSessions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not send the follow-up.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.sendError"));
       setActiveSession(sessionBeforeUpdate);  // Roll back the optimistic update.
       setAnimatingId(null);
       setInput(q);                            // Restore the input.
@@ -782,11 +832,11 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
   }, []);
 
   return (
-    <FrontstageShell active="/app/ask" title="Company Q&A" eyebrow="CompanyBrain" initialSnapshot={snapshot}>
+    <FrontstageShell active="/app/ask" title={t("shell.navAsk")} eyebrow={t("shell.askEyebrow")} initialSnapshot={snapshot}>
       <div className="global-ask-workspace">
-        <aside className="global-chat-history" aria-label="Chat history">
+        <aside className="global-chat-history" aria-label={t("shell.chatHistory")}>
           <header>
-            <span>Chat history</span>
+            <span>{t("shell.chatHistory")}</span>
             <button
               type="button"
               onClick={() => {
@@ -795,12 +845,12 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
                 setMessage("");
               }}
             >
-              New
+              {t("shell.newChat")}
             </button>
           </header>
           <div className="global-history-list">
-            {loadingSessions ? <p>Loading chats...</p> : null}
-            {!loadingSessions && sessions.length === 0 ? <p>No chats yet. Ask your first question and it appears here, newest first.</p> : null}
+            {loadingSessions ? <p>{t("shell.loadingChats")}</p> : null}
+            {!loadingSessions && sessions.length === 0 ? <p>{t("shell.noChatsYet")}</p> : null}
             {sessions.map((item) => (
               <button
                 key={item.id}
@@ -809,25 +859,25 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
                 onClick={() => void openSession(item.id)}
               >
                 <b>{item.title}</b>
-                <span>{scopeLabel(item.scope)} · {item.updatedAtText}</span>
+                <span>{t(scopeLabel(item.scope))} · {item.updatedAtText}</span>
                 <small>{item.latestMessage}</small>
               </button>
             ))}
           </div>
-          <section className="global-scope-card">
-            <span>Current knowledge scope</span>
-            <p>{scopeDescription(scope)}</p>
+            <section className="global-scope-card">
+            <span>{t("shell.currentScope")}</span>
+              <p>{t(scopeDescription(scope))}</p>
           </section>
         </aside>
 
-        <main className="global-chat-thread" aria-label="Company-wide Q&A">
+        <main className="global-chat-thread" aria-label={t("shell.companyQaLabel")}>
           {!activeSession ? (
             <section className="global-empty-state">
-              <span>Ask CompanyBrain</span>
-              <h1>Ask a business question and let CompanyBrain assemble the evidence.</h1>
-              <p>It runs hybrid retrieval across the document evidence, knowledge graph, and knowledge wiki your account can access, then shows sources, permissions, and reusable scenarios.</p>
-              <div className="global-empty-suggestions" aria-label="Recently used">
-                <span>{sessions.length > 0 ? "Recently used" : "Continue with"}</span>
+              <span>{t("shell.askLabel")}</span>
+              <h1>{t("shell.askEmptyTitle")}</h1>
+              <p>{t("shell.askEmptyBody")}</p>
+              <div className="global-empty-suggestions" aria-label={t("shell.recentlyUsed")}>
+                <span>{sessions.length > 0 ? t("shell.recentlyUsed") : t("shell.continueWith")}</span>
                 <div className="global-empty-grid">
                   {recentGlobalEntries.map((entry) => (
                   <button key={entry.id} type="button" onClick={entry.action}>
@@ -837,7 +887,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
                   </button>
                   ))}
                   {recentGlobalEntries.length === 0 ? (
-                    <Link href="/app/templates">Pick a template to create your first reusable scenario</Link>
+                    <Link href="/app/templates">{t("shell.pickTemplateFirst")}</Link>
                   ) : null}
                 </div>
               </div>
@@ -846,20 +896,20 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
             <div className="global-chat-messages">
               {activeSession.messages.map((item) => (
                 <article key={item.id} className={`global-message ${item.role === "user" ? "user" : "assistant"}`}>
-                  <span>{item.role === "user" ? "You" : "CompanyBrain"}</span>
+                  <span>{item.role === "user" ? t("shell.you") : "CompanyBrain"}</span>
                   {item.role === "user" ? <p>{item.content}</p> : <AssistantText content={item.content} animate={item.id === animatingId} />}
                   {item.role === "assistant" && item.contextTrace ? (
                     <div className="global-answer-tags global-inline-references">
-                      {item.contextTrace.route === "direct" ? <em>Direct answer</em> : null}
+                      {item.contextTrace.route === "direct" ? <em>{t("shell.outputDirect")}</em> : null}
                       {item.contextTrace.route === "retrieve"
-                        ? item.contextTrace.retrievalTracks.filter((track) => track.count > 0).map((track) => <em key={track.label}>{track.label} {track.count}</em>)
+                        ? item.contextTrace.retrievalTracks.filter((track) => track.count > 0).map((track) => <em key={track.label}>{t(knowledgeTypeKey(track.label))} {track.count}</em>)
                         : null}
                     </div>
                   ) : null}
                   {item.role === "assistant" ? <AnswerFeedback traceId={item.traceId} /> : null}
                   {item.role === "assistant" && item.id === latestAssistant?.id && recommendedTemplates.length > 0 ? (
-                    <div className="global-followup-templates" aria-label="Templates suggested for this answer">
-                      <span>These scenarios could capture this</span>
+                    <div className="global-followup-templates" aria-label={t("platform.chat.templatesSuggested")}>
+                      <span>{t("shell.scenariosCouldCapture")}</span>
                       <div>
                         {recommendedTemplates.map((template) => (
                           <Link key={template.id} href={`/app/create?template=${template.id}`}>
@@ -875,7 +925,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
               {pending ? (
                 <article className="global-message assistant loading">
                   <span>CompanyBrain</span>
-                  <p>Searching accessible knowledge, assembling context, and drafting an answer...</p>
+                  <p>{t("shell.searchingKnowledge")}</p>
                 </article>
               ) : null}
             </div>
@@ -892,18 +942,18 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
               event.currentTarget.reset();
             }}
           >
-            <label htmlFor="global-ask-input">Ask CompanyBrain</label>
+            <label htmlFor="global-ask-input">{t("shell.askLabel")}</label>
             <textarea
               id="global-ask-input"
               name="q"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder={activeSession ? "Ask a follow-up; this conversation's context is kept..." : "Ask a complex business question, e.g. compare West Coast pipeline across the last three quarters..."}
+              placeholder={activeSession ? t("platform.chat.askFollowupPlaceholder") : t("shell.askPlaceholder")}
               rows={4}
             />
             <div className="global-composer-actions">
               <label htmlFor="global-ask-attachments">
-                Upload files
+                {t("shell.uploadFiles")}
                 <input
                   id="global-ask-attachments"
                   type="file"
@@ -912,17 +962,17 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
                   onChange={(event) => setAttachments(Array.from(event.currentTarget.files ?? []))}
                 />
               </label>
-              <select value={scope} onChange={(event) => setScope(event.target.value as GlobalChatScope)} aria-label="Knowledge scope">
-                <option value="company">Company-wide</option>
-                <option value="team">Team knowledge</option>
-                <option value="private">Personal files</option>
+              <select value={scope} onChange={(event) => setScope(event.target.value as GlobalChatScope)} aria-label={t("shell.knowledgeScope")}>
+                <option value="company">{t("shell.scopeCompany")}</option>
+                <option value="team">{t("shell.scopeTeam")}</option>
+                <option value="private">{t("shell.scopePrivate")}</option>
               </select>
-              <select value={outputMode} onChange={(event) => setOutputMode(event.target.value as GlobalChatOutputMode)} aria-label="Output format">
-                <option value="direct">Direct answer</option>
-                <option value="report">Report draft</option>
-                <option value="table">Table summary</option>
+              <select value={outputMode} onChange={(event) => setOutputMode(event.target.value as GlobalChatOutputMode)} aria-label={t("shell.outputFormat")}>
+                <option value="direct">{t("shell.outputDirect")}</option>
+                <option value="report">{t("shell.outputReport")}</option>
+                <option value="table">{t("shell.outputTable")}</option>
               </select>
-              <button type="submit" disabled={pending}>{pending ? "Generating" : "Send"}</button>
+              <button type="submit" disabled={pending}>{pending ? t("platform.chat.generating") : t("platform.chat.send")}</button>
             </div>
             {attachments.length || pendingAttachmentLabels.length ? (
               <div className="global-attachment-list">
@@ -933,25 +983,25 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
           </form>
         </main>
 
-        <aside className="global-source-rail" aria-label="Sources and scenario suggestions">
+        <aside className="global-source-rail" aria-label={t("platform.chat.sourceRailLabel")}>
           <section className="global-source-panel">
             <header>
-              <span>Sources in this answer</span>
-              <b>{isDirectAnswer ? "Not retrieved" : `${activeCitations.length} citations`}</b>
+              <span>{t("shell.sourcesInAnswer")}</span>
+              <b>{isDirectAnswer ? t("platform.chat.notRetrieved") : t("platform.chat.citationsCount", { count: activeCitations.length })}</b>
             </header>
             {activeCitations.length === 0 ? (
-              <p>{isDirectAnswer ? "This turn was handled as general chat; the model answered directly without querying the enterprise knowledge base." : "Once you ask, the matched files, knowledge types, and source scenarios appear here."}</p>
+              <p>{isDirectAnswer ? t("platform.chat.directAnswerHint") : t("platform.chat.sourceRailEmpty")}</p>
             ) : null}
             {citationGroups.map((group) => (
               <section key={group.type} className="global-source-section">
                 <header>
-                  <h3>{group.type}</h3>
-                  <span>{group.items.length} citations</span>
+                  <h3>{t(knowledgeTypeKey(group.type))}</h3>
+                  <span>{t("platform.chat.citationsCount", { count: group.items.length })}</span>
                 </header>
-                <p>{knowledgeSourceHint(group.type)}</p>
+                <p>{t(knowledgeSourceHint(group.type))}</p>
                 {group.items.map((citation) => (
                   <article key={`${citation.knowledgeObjectId}-${citation.sourceOriginalName}`}>
-                    <em>{sourceBadgeForCitation(citation)}</em>
+                    <em>{t(sourceBadgeForCitation(citation))}</em>
                     <b>{citation.scenarioName}</b>
                     <small>{displaySourceName(citation.sourceOriginalName)}</small>
                     <p>{citation.excerpt}</p>
@@ -963,35 +1013,35 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
 
           <section className="global-source-panel">
             <header>
-              <span>Answer scope</span>
-              <b>{activeTrace?.scopeLabel ?? scopeLabel(scope)}</b>
+              <span>{t("shell.answerScope")}</span>
+              <b>{activeTrace?.scopeLabel ?? t(scopeLabel(scope))}</b>
             </header>
             <ul className="global-answer-scope-list">
-              <li><b>Knowledge scope</b><span>{scopeDescription(activeSession?.scope ?? scope)}</span></li>
-              <li><b>Follow-ups</b><span>{activeSession ? "Keeps the current conversation thread" : "A new chat starts once you submit"}</span></li>
-              <li><b>Routing</b><span>{activeTrace?.routeReason ?? "Decided after you submit the question"}</span></li>
-              <li><b>Source status</b><span>{isDirectAnswer ? "No enterprise knowledge retrieved this turn" : activeCitations.length ? "Traceable sources returned" : "Sources appear after the answer"}</span></li>
+              <li><b>{t("shell.knowledgeScope")}</b><span>{t(scopeDescription(activeSession?.scope ?? scope))}</span></li>
+              <li><b>{t("shell.followUps")}</b><span>{activeSession ? t("shell.followUpsThread") : t("shell.followUpsNew")}</span></li>
+              <li><b>{t("shell.routing")}</b><span>{activeTrace?.routeReason ?? t("shell.routingPending")}</span></li>
+              <li><b>{t("shell.sourceStatus")}</b><span>{isDirectAnswer ? t("shell.sourceStatusDirect") : activeCitations.length ? t("shell.sourceStatusTraceable") : t("shell.sourceStatusPending")}</span></li>
             </ul>
           </section>
 
           <section className="global-source-panel">
             <header>
-              <span>Suggested capture</span>
-              <b>{relatedScenario ? "Open scenario" : "Create scenario"}</b>
+              <span>{t("shell.suggestedCapture")}</span>
+              <b>{relatedScenario ? t("shell.openScenario") : t("shell.createScenario")}</b>
             </header>
             {relatedScenario ? (
               <>
                 <h2>{relatedScenario.name}</h2>
                 <p>{relatedScenario.description}</p>
                 <div className="global-source-actions">
-                  <Link href={`/app/scenarios/${relatedScenario.id}`}>Open scenario</Link>
-                  <Link href="/app/templates">Browse templates</Link>
+                  <Link href={`/app/scenarios/${relatedScenario.id}`}>{t("shell.openScenario")}</Link>
+                  <Link href="/app/templates">{t("shell.browseTemplates")}</Link>
                 </div>
               </>
             ) : (
               <div className="global-source-actions">
-                <Link href="/app/templates">Choose a template</Link>
-                <Link href="/app/create?mode=blank">Build your own scenario</Link>
+                <Link href="/app/templates">{t("shell.chooseTemplate")}</Link>
+                <Link href="/app/create?mode=blank">{t("shell.buildOwnScenario")}</Link>
               </div>
             )}
             {suggestedQuestions.map((question) => (
@@ -1005,6 +1055,7 @@ export function CompanyChatPage({ initialQuery, initialSnapshot }: { initialQuer
 }
 
 export function TemplateLibraryPage() {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [selectedTemplateId, setSelectedTemplateId] = useState("customer-360");
@@ -1020,30 +1071,30 @@ export function TemplateLibraryPage() {
   const activeView = getTemplateViewOption(view);
 
   return (
-    <FrontstageShell active="/app/templates" title="Templates" eyebrow="Best-practice entry point">
+    <FrontstageShell active="/app/templates" title={t("shell.navTemplates")} eyebrow={t("shell.templatesEyebrow")}>
       <section className="ux-page-head template-library-head">
         <div>
-          <span>Templates</span>
-          <h1>Choose a knowledge app by business goal.</h1>
-          <p>A template is more than a card: it is the best-practice path into a new scenario. Pick the business goal, upload files, and the admin console configures the real RAG ingest policy for that content and its permissions.</p>
+          <span>{t("shell.navTemplates")}</span>
+          <h1>{t("templates.chooseByGoal")}</h1>
+          <p>{t("templates.libraryBody")}</p>
         </div>
         <div className="template-library-actions">
-          <Link className="primary" href="/app/create?mode=blank">Create scenario</Link>
-          <Link href={`/app/create?template=${selectedTemplate.id}`}>Create selected template</Link>
+          <Link className="primary" href="/app/create?mode=blank">{t("shell.createScenario")}</Link>
+          <Link href={`/app/create?template=${selectedTemplate.id}`}>{t("templates.createSelected")}</Link>
         </div>
       </section>
       <div className="template-market-toolbar">
         <label>
-          <span>Search templates</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search customers, policies, support, contracts..." />
+          <span>{t("templates.searchTemplates")}</span>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("templates.searchPlaceholder")} />
         </label>
         <TemplateViewToggle view={view} onChange={setView} />
       </div>
-      <section className="template-market-layout" aria-label="Template catalog">
+      <section className="template-market-layout" aria-label={t("templates.catalogLabel")}>
         <aside className="template-filter-panel">
           <div>
-            <span>Business category</span>
-            <b>Narrow by goal</b>
+            <span>{t("templates.businessCategory")}</span>
+            <b>{t("templates.narrowByGoal")}</b>
           </div>
           <div className="template-category-list">
             {categories.map((item) => (
@@ -1053,25 +1104,25 @@ export function TemplateLibraryPage() {
                 className={item === category ? "active" : ""}
                 onClick={() => setCategory(item)}
               >
-                <span>{item}</span>
+                <span>{item === "All" ? t("common.all") : item}</span>
                 <small>{item === "All" ? officialTemplates.length : officialTemplates.filter((template) => template.category === item).length}</small>
               </button>
             ))}
           </div>
           <div className="template-filter-note">
-            <b>No good fit?</b>
-            <p>Create your own scenario instead: upload files and the admin decides which knowledge pipeline fits.</p>
-            <Link href="/app/create?mode=blank">Create scenario</Link>
+            <b>{t("templates.noGoodFit")}</b>
+            <p>{t("templates.noGoodFitBody")}</p>
+            <Link href="/app/create?mode=blank">{t("shell.createScenario")}</Link>
           </div>
         </aside>
 
         <div className="template-market-main">
           <header>
             <div>
-              <span>{activeView.label} view</span>
-              <b>{visible.length} templates available</b>
+              <span>{t("templates.viewAriaLabel", { view: t(activeView.label) })}</span>
+              <b>{t("templates.templatesAvailable", { count: visible.length })}</b>
             </div>
-            <small>{activeView.description}</small>
+            <small>{t(activeView.description)}</small>
           </header>
           <TemplateMarketCanvas
             view={view}
@@ -1090,36 +1141,37 @@ export function TemplateLibraryPage() {
 export const ScenarioLibraryPage = TemplateLibraryPage;
 
 export function TemplateDetailPage({ id }: { id: string }) {
+  const { t } = useI18n();
   const template = templateById(id);
   if (!template) return <TemplateNotFound />;
 
   return (
-    <FrontstageShell active="/app/templates" title={template.name} eyebrow="Template detail">
+    <FrontstageShell active="/app/templates" title={template.name} eyebrow={t("shell.templateDetailEyebrow")}>
       <div className="ux-template-detail">
         <section className="ux-hero-panel">
           <span>{template.category}</span>
           <h1>{template.name}</h1>
           <p>{template.headline}</p>
           <div className="ux-actions">
-            <Link className="ux-primary-link" href={`/app/create?template=${template.id}`}>Create with this template</Link>
-            <Link href="#preview">See the preview</Link>
+            <Link className="ux-primary-link" href={`/app/create?template=${template.id}`}>{t("templates.createWithTemplate")}</Link>
+            <Link href="#preview">{t("templates.seePreview")}</Link>
           </div>
         </section>
         <aside className="ux-side-panel">
-          <Meta label="Setup time" value={template.setupTime} />
-          <Meta label="Approval needed" value={template.reviewRequirement} />
-          <Meta label="Accepted files" value={template.acceptedFiles.join(" / ")} />
+          <Meta label={t("templates.setupTime")} value={template.setupTime} />
+          <Meta label={t("templates.approvalNeeded")} value={template.reviewRequirement} />
+          <Meta label={t("templates.acceptedFiles")} value={template.acceptedFiles.join(" / ")} />
         </aside>
-        <InfoSection title="Best for" items={template.bestFor} />
-        <InfoSection title="What you need to prepare" items={template.inputExamples} />
-        <InfoSection title="What the system does" items={template.processingExplanation} ordered />
-        <InfoSection title="What you can do afterwards" items={template.outputCapabilities} />
+        <InfoSection title={t("templates.bestFor")} items={template.bestFor} />
+        <InfoSection title={t("templates.whatToPrepare")} items={template.inputExamples} />
+        <InfoSection title={t("templates.whatSystemDoes")} items={template.processingExplanation} ordered />
+        <InfoSection title={t("templates.whatAfterwards")} items={template.outputCapabilities} />
         <section id="preview" className="ux-demo-panel">
-          <span>Template preview</span>
+          <span>{t("templates.preview")}</span>
           <h2>{template.demoWalkthrough.scenarioName}</h2>
           <div className="ux-demo-grid">
             <div>
-              <h3>Sample files</h3>
+              <h3>{t("templates.sampleFiles")}</h3>
               {template.demoWalkthrough.sampleInputs.map((asset) => (
                 <article key={asset.fileName} className="ux-source-card">
                   <b>{asset.title}</b>
@@ -1129,12 +1181,12 @@ export function TemplateDetailPage({ id }: { id: string }) {
               ))}
             </div>
             <div>
-              <h3>Processing steps</h3>
+              <h3>{t("templates.processingSteps")}</h3>
               <ol>{template.demoWalkthrough.processingPreview.map((step) => <li key={step}>{step}</li>)}</ol>
             </div>
           </div>
           <div className="ux-answer-preview">
-            <small>Sample question</small>
+            <small>{t("platform.sample.sampleQuestion")}</small>
             <h3>{template.demoWalkthrough.sampleQuestion}</h3>
             <p>{template.demoWalkthrough.sampleAnswer}</p>
             <div className="ux-citation-grid">
@@ -1155,6 +1207,7 @@ export function TemplateDetailPage({ id }: { id: string }) {
 }
 
 export function CreateScenarioPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isBlankMode = searchParams.get("mode") === "blank";
@@ -1212,30 +1265,30 @@ export function CreateScenarioPage() {
       const body = await response.json();
       router.push(`/app/tasks?created=${encodeURIComponent(body.task.id)}`);
     } catch {
-      setSubmitError("Submission failed. Check that your files are still available and try again.");
+      setSubmitError(t("platform.create.submitError"));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <FrontstageShell active="/app/templates" title="Create scenario" eyebrow="Create scenario">
+    <FrontstageShell active="/app/templates" title={t("shell.createScenario")} eyebrow={t("shell.createScenario")}>
       <section className="ux-page-head">
-        <h1>Submit the business goal and files first; the admin console handles knowledge processing.</h1>
-        <p>The workspace creates the scenario, uploads files, and describes the expected output; an admin confirms source quality, chooses the processing approach, then ingests and publishes.</p>
+        <h1>{t("platform.create.headline")}</h1>
+        <p>{t("platform.create.lead")}</p>
       </section>
       <div className="ux-create-layout">
         <section className="ux-form-panel create-scenario-form">
           <div className="create-mode-switch">
-            <button type="button" className={!isCustomTemplate ? "active" : ""} onClick={() => selectTemplate("customer-360")}>From a template</button>
-            <button type="button" className={isCustomTemplate ? "active" : ""} onClick={() => selectTemplate(customScenarioTemplate.id)}>Create scenario</button>
+            <button type="button" className={!isCustomTemplate ? "active" : ""} onClick={() => selectTemplate("customer-360")}>{t("platform.create.fromTemplate")}</button>
+            <button type="button" className={isCustomTemplate ? "active" : ""} onClick={() => selectTemplate(customScenarioTemplate.id)}>{t("shell.createScenario")}</button>
           </div>
           <div className="create-picker-block">
             <div className="create-section-title">
-              <span>Choose a starting point</span>
-              <small>Pick an official template, or upload files and build a scenario from scratch.</small>
+              <span>{t("platform.create.chooseStart")}</span>
+              <small>{t("platform.create.chooseStartHint")}</small>
             </div>
-            <div className="create-template-options" role="radiogroup" aria-label="Choose a starting point">
+            <div className="create-template-options" role="radiogroup" aria-label={t("platform.create.chooseStart")}>
               {creationTemplates.map((item) => {
                 const active = item.id === template.id;
                 const custom = item.id === customScenarioTemplate.id;
@@ -1248,34 +1301,34 @@ export function CreateScenarioPage() {
                     aria-checked={active}
                     onClick={() => selectTemplate(item.id)}
                   >
-                    <span>{custom ? "Custom" : item.category}</span>
+                    <span>{custom ? t("platform.create.custom") : item.category}</span>
                     <b>{item.name}</b>
-                    <small>{custom ? "Upload files and state the goal; the admin picks the processing approach." : item.demoWalkthrough.scenarioName}</small>
+                    <small>{custom ? t("platform.create.customHint") : item.demoWalkthrough.scenarioName}</small>
                   </button>
                 );
               })}
             </div>
           </div>
-          <label>Scenario name</label>
-          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. West Coast enterprise renewal risk review" />
-          <label>Scenario description</label>
-          <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Describe the problem, who uses it, and the result you expect." />
-          <label>Expected result</label>
-          <textarea value={processingGoal} onChange={(event) => setProcessingGoal(event.target.value)} rows={3} placeholder="e.g. Turn account files into a renewal brief you can question, with risks, opportunities, and citations." />
+          <label>{t("platform.create.scenarioName")}</label>
+          <input value={name} onChange={(event) => setName(event.target.value)} placeholder={t("platform.create.scenarioNamePlaceholder")} />
+          <label>{t("platform.create.scenarioDescription")}</label>
+          <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder={t("platform.create.scenarioDescriptionPlaceholder")} />
+          <label>{t("platform.create.expectedResult")}</label>
+          <textarea value={processingGoal} onChange={(event) => setProcessingGoal(event.target.value)} rows={3} placeholder={t("platform.create.expectedResultPlaceholder")} />
 
           <div className="create-intake-panel">
             <div className="create-section-title">
-              <span>Access and files</span>
-              <small>Decide who can use it, then add the business files for the admin to process.</small>
+              <span>{t("platform.create.accessFiles")}</span>
+              <small>{t("platform.create.accessFilesHint")}</small>
             </div>
 
             <div className="create-intake-grid">
               <section className="create-intake-section">
                 <div className="create-mini-head">
-                  <b>Publish scope</b>
-                  <span>Decides who can use the scenario once processing finishes.</span>
+                  <b>{t("platform.create.publishScope")}</b>
+                  <span>{t("platform.create.publishScopeHint")}</span>
                 </div>
-                <div className="create-visibility-options" role="radiogroup" aria-label="Publish scope">
+                <div className="create-visibility-options" role="radiogroup" aria-label={t("platform.create.publishScope")}>
                   {visibilityOptions.map((option) => (
                     <button
                       key={option.value}
@@ -1285,8 +1338,8 @@ export function CreateScenarioPage() {
                       aria-checked={visibility === option.value}
                       onClick={() => setVisibility(option.value)}
                     >
-                      <b>{option.label}</b>
-                      <small>{option.description}</small>
+                      <b>{t(option.label)}</b>
+                      <small>{t(option.description)}</small>
                     </button>
                   ))}
                 </div>
@@ -1294,8 +1347,8 @@ export function CreateScenarioPage() {
 
               <section className="create-intake-section create-source-advice">
                 <div className="create-mini-head">
-                  <b>Suggested file types</b>
-                  <span>This template works best with these files first.</span>
+                  <b>{t("platform.create.suggestedFileTypes")}</b>
+                  <span>{t("platform.create.suggestedFileTypesHint")}</span>
                 </div>
                 <div className="create-file-type-list">
                   {template.acceptedFiles.map((fileType) => <span key={fileType}>{fileType}</span>)}
@@ -1305,8 +1358,8 @@ export function CreateScenarioPage() {
 
             <section className="create-intake-section create-upload-section">
               <div className="create-mini-head">
-                <b>Upload files</b>
-                <span>{hasFiles ? "Files attached and ready for the admin console." : "No files yet. Pick at least one file, or use the sample files, before submitting."}</span>
+                <b>{t("shell.uploadFiles")}</b>
+                <span>{hasFiles ? t("platform.create.filesReady") : t("platform.create.filesEmptyHint")}</span>
               </div>
               <div className="create-upload-box">
                 <input
@@ -1316,13 +1369,13 @@ export function CreateScenarioPage() {
                   accept=".pdf,.doc,.docx,.md,.txt,.csv,.xlsx,.json,.html"
                   onChange={(event) => setUploadedFiles(Array.from(event.currentTarget.files ?? []))}
                 />
-                <label htmlFor="scenario-file-upload">Choose files</label>
-                <button type="button" onClick={() => setUploadedFiles(template.demoWalkthrough.sampleInputs.map(makeTemplateSampleFile))}>Use sample files</button>
-                <span>{hasFiles ? `Attached ${uploadedFiles.length} files` : "Supports PDF, Word, Markdown, spreadsheets, JSON, and more"}</span>
+                <label htmlFor="scenario-file-upload">{t("platform.create.chooseFiles")}</label>
+                <button type="button" onClick={() => setUploadedFiles(template.demoWalkthrough.sampleInputs.map(makeTemplateSampleFile))}>{t("platform.create.useSampleFiles")}</button>
+                <span>{hasFiles ? t("platform.create.attachedFilesCount", { count: uploadedFiles.length }) : t("platform.create.fileTypesHint")}</span>
               </div>
 
               <div className={`create-file-state ${hasFiles ? "ready" : ""}`}>
-                <b>{hasFiles ? "Files attached" : "Waiting for files"}</b>
+                <b>{hasFiles ? t("platform.create.filesAttached") : t("platform.create.waitingForFiles")}</b>
                 {hasFiles ? (
                   <div className="ux-file-list create-file-list">
                     {uploadedFiles.map((file) => (
@@ -1330,7 +1383,7 @@ export function CreateScenarioPage() {
                     ))}
                   </div>
                 ) : (
-                  <p>Upload your own files, or run the full flow with the template's sample files first.</p>
+                  <p>{t("platform.create.filesEmptyBody")}</p>
                 )}
               </div>
             </section>
@@ -1338,11 +1391,11 @@ export function CreateScenarioPage() {
 
           {submitError && <p className="create-submit-error">{submitError}</p>}
           <button className="ux-button" disabled={!name.trim() || !hasFiles || isSubmitting} onClick={submitScenario}>
-            {isSubmitting ? "Submitting files" : "Submit for processing"}
+            {isSubmitting ? t("platform.create.submittingFiles") : t("platform.create.submitForProcessing")}
           </button>
         </section>
         <aside className="ux-path-panel create-processing-panel">
-          <h2>What happens next</h2>
+          <h2>{t("platform.create.whatsNext")}</h2>
           <div className="create-admin-note">
             <b>{draft.task.currentStep}</b>
             <span>{draft.task.userMessage}</span>
@@ -1351,14 +1404,14 @@ export function CreateScenarioPage() {
             <div className="ux-stage-row" key={stage.key}>
               <i>{index + 1}</i>
               <div>
-                <b>{stage.label}</b>
-                <span>{stage.description}</span>
+                <b>{t(stage.label)}</b>
+                <span>{t(stage.description)}</span>
               </div>
             </div>
           ))}
           <div className="create-admin-note">
-            <b>What the admin decides</b>
-            <span>Source quality, publish scope, and processing strategy, then whether to use knowledge compile, document evidence, knowledge graph, or a combination.</span>
+            <b>{t("platform.create.adminDecides")}</b>
+            <span>{t("platform.create.adminDecidesBody")}</span>
           </div>
         </aside>
       </div>
@@ -1367,13 +1420,14 @@ export function CreateScenarioPage() {
 }
 
 export function MyScenariosPage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
+  const { t } = useI18n();
   const { snapshot, state } = usePlatformSnapshot(initialSnapshot);
-  const [status, setStatus] = useState("All");
+  const [status, setStatus] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const scenarios = useMemo(() => sortScenariosByStatusAndTime(snapshot.scenarios).map(toScenarioInstance), [snapshot.scenarios]);
   const visible = scenarios.filter((scenario) => {
-    const statusOk = status === "All" || statusLabel(scenario.status) === status;
+    const statusOk = scenarioStatusMatchesFilter(scenario.status, status);
     const q = query.trim().toLowerCase();
     const template = templateById(scenario.templateId);
     const queryOk = !q || `${scenario.name} ${scenario.description} ${template?.name ?? ""} ${template?.category ?? ""}`.toLowerCase().includes(q);
@@ -1385,61 +1439,61 @@ export function MyScenariosPage({ initialSnapshot }: { initialSnapshot?: Platfor
   const companyCount = scenarios.filter((scenario) => scenario.visibility === "company").length;
 
   return (
-    <FrontstageShell active="/app/scenarios" title="Scenarios" eyebrow="Knowledge assets" initialSnapshot={snapshot}>
+    <FrontstageShell active="/app/scenarios" title={t("shell.navScenarios")} eyebrow={t("shell.scenariosEyebrow")} initialSnapshot={snapshot}>
       <section className="scenario-asset-head">
         <div>
-          <span>Scenario assets</span>
-          <h1>Manage the knowledge apps you created, are processing, and use most.</h1>
-          <p>A scenario is not a one-off Q&A box. Each one binds files, permissions, processing tasks, past conversations, and deliverables, and opens into its own business workbench.</p>
+          <span>{t("platform.scenario.assetsEyebrow")}</span>
+          <h1>{t("platform.scenario.assetsTitle")}</h1>
+          <p>{t("platform.scenario.assetsBody")}</p>
         </div>
-        <div className="scenario-asset-metrics" aria-label="Scenario stats">
-          <span><b>{scenarios.length}</b>Total scenarios</span>
-          <span><b>{readyCount}</b>Available</span>
-          <span><b>{processingCount}</b>Processing</span>
-          <span><b>{companyCount}</b>Company-wide</span>
+        <div className="scenario-asset-metrics" aria-label={t("platform.scenario.statsLabel")}>
+          <span><b>{scenarios.length}</b>{t("platform.scenario.totalScenarios")}</span>
+          <span><b>{readyCount}</b>{t("platform.scenario.available")}</span>
+          <span><b>{processingCount}</b>{t("platform.scenario.processing")}</span>
+          <span><b>{companyCount}</b>{t("platform.scenario.companyWide")}</span>
         </div>
       </section>
 
       <div className="scenario-asset-layout">
-        <aside className="scenario-asset-filter" aria-label="Scenario filters">
-          <Link className="scenario-create-primary" href="/app/templates">Create scenario</Link>
+        <aside className="scenario-asset-filter" aria-label={t("platform.scenario.filtersLabel")}>
+          <Link className="scenario-create-primary" href="/app/templates">{t("platform.scenario.createScenario")}</Link>
           <section>
-            <b>Status</b>
-            {["All", "Available", "Processing", "Pending review", "Failed"].map((item) => (
-              <button key={item} type="button" className={item === status ? "active" : ""} onClick={() => setStatus(item)}>
-                <span>{item}</span>
-                <em>{countScenariosByStatus(scenarios, item)}</em>
+            <b>{t("platform.scenario.status")}</b>
+            {scenarioStatusFilters.map((item) => (
+              <button key={item.value} type="button" className={item.value === status ? "active" : ""} onClick={() => setStatus(item.value)}>
+                <span>{t(item.label)}</span>
+                <em>{countScenariosByStatus(scenarios, item.value)}</em>
               </button>
             ))}
           </section>
           <section>
-            <b>Access scope</b>
+            <b>{t("platform.scenario.accessScope")}</b>
             {(["private", "team", "company"] as Visibility[]).map((item) => (
               <Link key={item} href={`/app/scenarios?scope=${item}`}>
-                <span>{visibilityText(item)}</span>
+                <span>{t(visibilityText(item))}</span>
                 <em>{scenarios.filter((scenario) => scenario.visibility === item).length}</em>
               </Link>
             ))}
           </section>
         </aside>
 
-        <section className="scenario-asset-table" aria-label="Scenario list">
+        <section className="scenario-asset-table" aria-label={t("platform.scenario.listLabel")}>
           <header>
             <div>
-              <span>Scenarios</span>
-              <b>{visible.length} scenarios</b>
+              <span>{t("platform.scenario.scenarios")}</span>
+              <b>{t("platform.scenario.scenariosCount", { count: visible.length })}</b>
             </div>
             <label>
-              <span>Search</span>
-              <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Search scenarios, templates, goals..." />
+              <span>{t("platform.scenario.search")}</span>
+              <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder={t("platform.scenario.searchPlaceholder")} />
             </label>
           </header>
           <div className="scenario-list-head" aria-hidden="true">
-            <span>Scenario</span>
-            <span>Form</span>
-            <span>Scope</span>
-            <span>Status</span>
-            <span>Actions</span>
+            <span>{t("common.scenario")}</span>
+            <span>{t("platform.scenario.form")}</span>
+            <span>{t("platform.scenario.scope")}</span>
+            <span>{t("platform.scenario.status")}</span>
+            <span>{t("platform.scenario.actions")}</span>
           </div>
           <div className="scenario-asset-rows">
             {visible.map((scenario) => (
@@ -1452,23 +1506,23 @@ export function MyScenariosPage({ initialSnapshot }: { initialSnapshot?: Platfor
             ))}
             {state !== "loading" && visible.length === 0 ? (
               <div className="scenario-empty-row">
-                <b>No matching scenarios</b>
-                <span>Adjust the filters, or create a new knowledge app from a template.</span>
-                <Link href="/app/templates">Choose a template</Link>
+                <b>{t("platform.scenario.noMatching")}</b>
+                <span>{t("platform.scenario.noMatchingHint")}</span>
+                <Link href="/app/templates">{t("platform.scenario.chooseTemplate")}</Link>
               </div>
             ) : null}
           </div>
         </section>
 
-        <aside className="scenario-asset-inspector" aria-label="Scenario details">
+        <aside className="scenario-asset-inspector" aria-label={t("platform.scenario.detailsLabel")}>
           {selectedScenario ? (
             <ScenarioAssetInspector scenario={selectedScenario} />
           ) : (
             <section>
-              <span>No scenario yet</span>
-              <h2>Create a scenario first</h2>
-              <p>After you upload files, an admin picks the real RAG ingest policy and publishes the scenario to the workspace.</p>
-              <Link href="/app/templates">Choose a template</Link>
+              <span>{t("platform.scenario.noScenarioYet")}</span>
+              <h2>{t("platform.scenario.createFirst")}</h2>
+              <p>{t("platform.scenario.createFirstBody")}</p>
+              <Link href="/app/templates">{t("platform.scenario.chooseTemplate")}</Link>
             </section>
           )}
         </aside>
@@ -1478,6 +1532,7 @@ export function MyScenariosPage({ initialSnapshot }: { initialSnapshot?: Platfor
 }
 
 export function TaskCenterPage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const createdTask = searchParams.get("created");
   const [liveTasks, setLiveTasks] = useState<ProcessingTask[]>(initialSnapshot?.tasks ?? []);
@@ -1530,59 +1585,59 @@ export function TaskCenterPage({ initialSnapshot }: { initialSnapshot?: Platform
   const readyCount = allTasks.filter((task) => task.status === "ready").length;
 
   return (
-    <FrontstageShell active="/app/tasks" title="Tasks" eyebrow="Ingest and publish progress" initialSnapshot={initialSnapshot}>
+    <FrontstageShell active="/app/tasks" title={t("shell.navTasks")} eyebrow={t("shell.tasksEyebrow")} initialSnapshot={initialSnapshot}>
       <section className="ux-page-head task-center-head">
         <div>
-          <span>Task center</span>
-          <h1>Track every file set from submission to publish.</h1>
-          <p>Tasks are grouped by status, type, and time. Users see who a task is waiting on; admins use the same view to pick up ingest and review.</p>
+          <span>{t("platform.task.centerEyebrow")}</span>
+          <h1>{t("platform.task.centerTitle")}</h1>
+          <p>{t("platform.task.centerBody")}</p>
         </div>
         <div className="task-head-metrics">
-          <span><b>{pendingAdminCount}</b>Pending admin review</span>
-          <span><b>{runningCount}</b>Processing</span>
-          <span><b>{readyCount}</b>Available</span>
+          <span><b>{pendingAdminCount}</b>{t("platform.task.pendingAdminReview")}</span>
+          <span><b>{runningCount}</b>{t("platform.task.processing")}</span>
+          <span><b>{readyCount}</b>{t("platform.task.available")}</span>
         </div>
       </section>
       {createdTask && (
         <section className="task-submit-banner">
-          <b>New scenario submitted</b>
-          <span>The admin console received the scenario name, files, and processing goal. The task is now pending admin review and needs a processing choice before ingest.</span>
+          <b>{t("platform.task.newSubmitted")}</b>
+          <span>{t("platform.task.newSubmittedBody")}</span>
         </section>
       )}
-      <section className="task-control-bar" aria-label="Task filters and sorting">
+      <section className="task-control-bar" aria-label={t("platform.task.filtersLabel")}>
         <div>
-          {["All statuses", "Pending admin review", "Processing", "Available"].map((item) => (
-            <button key={item} type="button" className={statusFilter === item ? "active" : ""} onClick={() => setStatusFilter(item)}>{item}</button>
+          {taskStatusFilters.map((item) => (
+            <button key={item.value} type="button" className={statusFilter === item.value ? "active" : ""} onClick={() => setStatusFilter(item.value)}>{t(item.label)}</button>
           ))}
         </div>
         <div>
-          {["All types", "File intake", "Admin review", "Publish review"].map((item) => (
-            <button key={item} type="button" className={kindFilter === item ? "active" : ""} onClick={() => setKindFilter(item)}>{item}</button>
+          {taskKindFilters.map((item) => (
+            <button key={item.value} type="button" className={kindFilter === item.value ? "active" : ""} onClick={() => setKindFilter(item.value)}>{t(item.label)}</button>
           ))}
         </div>
         <div>
-          {["Recently updated", "Submitted", "Progress"].map((item) => (
-            <button key={item} type="button" className={sortBy === item ? "active" : ""} onClick={() => setSortBy(item)}>{item}</button>
+          {taskSortOptions.map((item) => (
+            <button key={item.value} type="button" className={sortBy === item.value ? "active" : ""} onClick={() => setSortBy(item.value)}>{t(item.label)}</button>
           ))}
         </div>
       </section>
       <div className="task-board-layout">
         <aside className="task-board-side">
-          <b>Processing rules</b>
-          <p>Personal files stay in your personal knowledge space; team files open only to team scenarios; company files need admin review before they reach CompanyBrain.</p>
+          <b>{t("platform.task.processingRules")}</b>
+          <p>{t("platform.task.processingRulesBody")}</p>
           <div className="task-board-side-note">
-            <span>The workspace only shows processing status</span>
-            <strong>Ingest, review, and publishing happen in the admin console.</strong>
+            <span>{t("platform.task.workspaceOnly")}</span>
+            <strong>{t("platform.task.adminHandles")}</strong>
           </div>
         </aside>
         <div className="task-list">
           {allTasks.map((task) => <TaskCard key={task.id} task={task} />)}
           {allTasks.length === 0 ? (
             <article className="ux-task-card">
-              <header className="task-card-head"><span>No tasks</span><small>File intake</small></header>
-              <h2>No processing tasks yet</h2>
-              <p>Upload files from a template or custom scenario and the real tasks show up here: waiting for admin review, ingesting, publishing, or sent back for more files.</p>
-              <footer className="task-card-actions"><Link href="/app/templates">Choose a template</Link><Link href="/app/create?mode=blank">Create scenario</Link></footer>
+              <header className="task-card-head"><span>{t("platform.task.noTasks")}</span><small>{t("platform.task.fileIntake")}</small></header>
+              <h2>{t("platform.task.noTasksYet")}</h2>
+              <p>{t("platform.task.noTasksBody")}</p>
+              <footer className="task-card-actions"><Link href="/app/templates">{t("platform.scenario.chooseTemplate")}</Link><Link href="/app/create?mode=blank">{t("platform.scenario.createScenario")}</Link></footer>
             </article>
           ) : null}
         </div>
@@ -1592,6 +1647,7 @@ export function TaskCenterPage({ initialSnapshot }: { initialSnapshot?: Platform
 }
 
 export function KnowledgeSpacePage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
+  const { t } = useI18n();
   const { snapshot, state } = usePlatformSnapshot(initialSnapshot);
   const knowledgeObjects = useMemo(() => snapshot.knowledge.map(toKnowledgeSpaceObject), [snapshot.knowledge]);
   const [scopeFilter, setScopeFilter] = useState<KnowledgeAssetScope>("all");
@@ -1600,42 +1656,42 @@ export function KnowledgeSpacePage({ initialSnapshot }: { initialSnapshot?: Plat
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const stats = useMemo(() => buildKnowledgeAssetStats(knowledgeObjects), [knowledgeObjects]);
   const filteredObjects = useMemo(
-    () => filterKnowledgeAssets(knowledgeObjects, { scope: scopeFilter, kind: kindFilter, query }),
-    [knowledgeObjects, scopeFilter, kindFilter, query]
+    () => filterKnowledgeAssets(knowledgeObjects, { scope: scopeFilter, kind: kindFilter, query }, t),
+    [knowledgeObjects, scopeFilter, kindFilter, query, t]
   );
   const selectedObject = filteredObjects.find((object) => object.id === selectedId) ?? filteredObjects[0] ?? knowledgeObjects[0] ?? null;
   return (
-    <FrontstageShell active="/app/knowledge" title="Knowledge" eyebrow="Retrievable knowledge space" initialSnapshot={snapshot}>
+    <FrontstageShell active="/app/knowledge" title={t("knowledge.pageTitle")} eyebrow={t("knowledge.pageEyebrow")} initialSnapshot={snapshot}>
       <section className="knowledge-asset-head">
         <div>
-          <span>Knowledge asset center</span>
-          <h1>Manage retrievable knowledge assets, permission boundaries, and business sources.</h1>
-          <p>This shows the document evidence, knowledge graph, knowledge wiki, and business artifacts your account can actually see. Users confirm what personal, team, or company scenarios can retrieve, and request updates, sharing, or publishing.</p>
+          <span>{t("knowledge.centerEyebrow")}</span>
+          <h1>{t("knowledge.centerTitle")}</h1>
+          <p>{t("knowledge.centerBody")}</p>
         </div>
         <div className="knowledge-asset-metrics">
-          <span><b>{stats.total}</b>Total assets</span>
-          <span><b>{stats.private}</b>Personal</span>
-          <span><b>{stats.team}</b>Team</span>
-          <span><b>{stats.company}</b>Company</span>
+          <span><b>{stats.total}</b>{t("knowledge.totalAssets")}</span>
+          <span><b>{stats.private}</b>{t("visibility.private")}</span>
+          <span><b>{stats.team}</b>{t("visibility.team")}</span>
+          <span><b>{stats.company}</b>{t("visibility.company")}</span>
         </div>
       </section>
       <div className="knowledge-asset-layout">
         <aside className="knowledge-asset-filter">
           <div className="knowledge-filter-block">
-            <strong>Permission scope</strong>
+            <strong>{t("knowledge.permissionScope")}</strong>
             {knowledgeAssetScopes.map((scope) => (
               <button key={scope.id} type="button" className={scopeFilter === scope.id ? "active" : ""} onClick={() => setScopeFilter(scope.id)}>
-                <b>{scope.label}</b>
-                <span>{scope.description}</span>
+                <b>{t(scope.label)}</b>
+                <span>{t(scope.description)}</span>
               </button>
             ))}
           </div>
           <div className="knowledge-filter-block">
-            <strong>Asset type</strong>
+            <strong>{t("knowledge.assetType")}</strong>
             {knowledgeAssetKinds.map((kind) => (
               <button key={kind.id} type="button" className={kindFilter === kind.id ? "active" : ""} onClick={() => setKindFilter(kind.id)}>
-                <b>{kind.label}</b>
-                <span>{kind.description}</span>
+                <b>{t(kind.label)}</b>
+                <span>{t(kind.description)}</span>
               </button>
             ))}
           </div>
@@ -1643,10 +1699,10 @@ export function KnowledgeSpacePage({ initialSnapshot }: { initialSnapshot?: Plat
         <section className="knowledge-asset-main">
           <div className="knowledge-asset-toolbar">
             <div>
-              <span>Asset list</span>
+              <span>{t("knowledge.assetList")}</span>
               <b>{filteredObjects.length} / {stats.total}</b>
             </div>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search assets, sources, owners, or scenarios..." aria-label="Search knowledge assets" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("platform.knowledge.searchPlaceholder")} aria-label={t("platform.knowledge.searchAria")} />
           </div>
           <div className="knowledge-asset-table" role="list">
             {filteredObjects.map((object) => (
@@ -1659,9 +1715,9 @@ export function KnowledgeSpacePage({ initialSnapshot }: { initialSnapshot?: Plat
             ))}
             {state !== "loading" && filteredObjects.length === 0 ? (
               <div className="knowledge-empty-state">
-                <b>No knowledge assets match</b>
-                <p>Adjust the filters, or create a scenario from a template and submit files, then check back after ingest.</p>
-                <Link href="/app/templates">Choose a template</Link>
+                <b>{t("platform.knowledge.noMatch")}</b>
+                <p>{t("platform.knowledge.noMatchHint")}</p>
+                <Link href="/app/templates">{t("platform.scenario.chooseTemplate")}</Link>
               </div>
             ) : null}
           </div>
@@ -1678,56 +1734,65 @@ export function OutputsPage() {
 
 export function SettingsPage({ initialSnapshot }: { initialSnapshot?: PlatformSnapshot } = {}) {
   const auth = useAuth();
+  const { t, locale } = useI18n();
   const { snapshot } = usePlatformSnapshot(initialSnapshot);
   const role = auth.user?.is_admin ? "admin" : "member";
-  const model = useMemo(() => buildWorkspaceSettingsModel({ profile: workspaceProfile, role, snapshot }), [role, snapshot]);
+  const model = useMemo(() => buildWorkspaceSettingsModel({ profile: workspaceProfile, role, snapshot, t }), [role, snapshot, t]);
   const recentTasks = snapshot.tasks.slice(0, 4);
   const readyScenarios = snapshot.scenarios.filter((scenario) => scenario.status === "ready").slice(0, 4);
   return (
-    <FrontstageShell active="/app/settings" title="Space Settings" eyebrow="Permissions, connectors, and publish policy" initialSnapshot={snapshot}>
+    <FrontstageShell active="/app/settings" title={t("settings.pageTitle")} eyebrow={t("settings.pageEyebrow")} initialSnapshot={snapshot}>
       <section className="settings-console-head">
         <div>
-          <span>Workspace governance</span>
-          <h1>Keep accounts, permissions, connectors, and publish policy on one control surface.</h1>
-          <p>Workspace users only manage what they can reach; real ingest policy, model services, and company-level publishing stay with admins. This page makes business users, team permissions, and knowledge asset boundaries explicit.</p>
+          <span>{t("settings.governanceEyebrow")}</span>
+          <h1>{t("settings.governanceTitle")}</h1>
+          <p>{t("settings.governanceBody")}</p>
         </div>
         <div className="settings-user-card">
-          <small>Current account</small>
+          <small>{t("settings.currentAccount")}</small>
           <b>{auth.user?.display_name || auth.user?.username || workspaceProfile.currentUser}</b>
-          <span>{roleDisplayName(role)} · {workspaceProfile.plan}</span>
+          <span>{t(roleDisplayName(role))} · {workspaceProfile.plan}</span>
         </div>
       </section>
       <div className="settings-console-grid">
+        <section className="settings-console-panel settings-language-panel">
+          <PanelHeading eyebrow={t("settings.languageEyebrow")} title={t("settings.languageTitle")} />
+          <p className="settings-language-note">
+            {t("language.currentMode", { language: t(locale === "zh-CN" ? "language.chinese" : "language.english") })}
+          </p>
+          <p className="settings-language-note">{t("language.description")}</p>
+          <LanguageSwitcher variant="section" />
+        </section>
         <section className="settings-console-panel settings-identity-panel">
-          <PanelHeading eyebrow="Identity and space" title="What this account can do" />
+          <PanelHeading eyebrow={t("settings.identityEyebrow")} title={t("settings.identityTitle")} />
           <SettingsRows rows={model.identityRows} />
         </section>
         <section className="settings-console-panel settings-permission-panel">
-          <PanelHeading eyebrow="Permission boundaries" title="Knowledge retrieval scope" />
+          <PanelHeading eyebrow={t("settings.permissionEyebrow")} title={t("settings.permissionTitle")} />
           <SettingsRows rows={model.permissionRows} />
           <div className="settings-policy-note">
-            <b>Default rules</b>
-            <span>Personal files are not retrieved by teams; team files do not flow into CompanyBrain automatically; company knowledge needs a publish record.</span>
+            <b>{t("settings.defaultRules")}</b>
+            <span>{t("settings.defaultRulesBody")}</span>
           </div>
         </section>
         <section className="settings-console-panel settings-connector-panel">
-          <PanelHeading eyebrow="Connectors" title="How files enter the system" />
+          <PanelHeading eyebrow={t("settings.connectorEyebrow")} title={t("settings.connectorTitle")} />
           <SettingsRows rows={model.connectorRows} />
         </section>
         <section className="settings-console-panel settings-policy-panel">
-          <PanelHeading eyebrow="Publish policy" title="How a scenario becomes available" />
+          <PanelHeading eyebrow={t("settings.publishEyebrow")} title={t("settings.publishTitle")} />
           <div className="settings-policy-flow">
-            {["Submit files", "Admin ingest", "Permission review", "Publish"].map((step, index) => (
+            {[1, 2, 3, 4].map((step, index) => (
               <div key={step}>
                 <i>{index + 1}</i>
-                <b>{step}</b>
-                <span>{index === 0 ? "Business user uploads files" : index === 1 ? "Admin picks the RAG pipeline" : index === 2 ? "Confirm personal/team/company boundary" : "Workspace scenario starts retrieving"}</span>
+                <b>{t(`settings.publishStep${step}`)}</b>
+                <span>{t(`settings.publishStep${step}Body`)}</span>
               </div>
             ))}
           </div>
         </section>
         <section className="settings-console-panel settings-audit-panel">
-          <PanelHeading eyebrow="Audit and pending" title="Recent items to watch" />
+          <PanelHeading eyebrow={t("settings.auditEyebrow")} title={t("settings.auditTitle")} />
           <SettingsRows rows={model.auditRows} />
           <div className="settings-audit-list">
             {recentTasks.length > 0 ? recentTasks.map((task) => (
@@ -1735,18 +1800,18 @@ export function SettingsPage({ initialSnapshot }: { initialSnapshot?: PlatformSn
                 <b>{task.title}</b>
                 <span>{task.currentStep} · {task.progress}%</span>
               </Link>
-            )) : <span>No pending tasks</span>}
+            )) : <span>{t("settings.noPendingTasks")}</span>}
           </div>
         </section>
         <section className="settings-console-panel settings-scenario-panel">
-          <PanelHeading eyebrow="Available scenarios" title="Business entry points published in this space" />
+          <PanelHeading eyebrow={t("settings.scenarioEyebrow")} title={t("settings.scenarioTitle")} />
           <div className="settings-scenario-list">
             {readyScenarios.length > 0 ? readyScenarios.map((scenario) => (
               <Link key={scenario.id} href={`/app/scenarios/${scenario.id}`}>
                 <b>{scenario.name}</b>
-                <span>{scenario.ownerName} · {knowledgeVisibilityLabel(scenario.visibility)}</span>
+                <span>{scenario.ownerName} · {t(knowledgeVisibilityLabel(scenario.visibility))}</span>
               </Link>
-            )) : <span>No published scenarios yet</span>}
+            )) : <span>{t("settings.noPublishedScenarios")}</span>}
           </div>
         </section>
       </div>
@@ -1771,6 +1836,7 @@ export function ScenarioDetailByIdPage({
 }
 
 function LiveScenarioDetailPage({ id, tab = "overview", initialQuery, initialSessionId }: { id: string; tab?: ScenarioTab; initialQuery?: string; initialSessionId?: string }) {
+  const { t } = useI18n();
   const auth = useAuth();
   const [state, setState] = useState<"loading" | "ready" | "not-found" | "error">("loading");
   const [scenario, setScenario] = useState<LiveScenarioRecord | null>(null);
@@ -1836,32 +1902,32 @@ function LiveScenarioDetailPage({ id, tab = "overview", initialQuery, initialSes
 
   const tabs = ["overview", "data", "tasks", "ask", "outputs", "settings"] as const;
   return (
-    <FrontstageShell active="/app/scenarios" title={scenario?.name ?? "Loading scenario"} eyebrow={template.name}>
+    <FrontstageShell active="/app/scenarios" title={scenario?.name ?? t("shell.loadingScenario")} eyebrow={template.name}>
       {state === "loading" ? (
-        <section className="ux-page-head"><h1>Loading scenario</h1><p>Loading the real scenario data behind your submission and its ingest.</p></section>
+        <section className="ux-page-head"><h1>{t("platform.live.loadingTitle")}</h1><p>{t("platform.live.loadingBody")}</p></section>
       ) : state === "error" || !scenario ? (
-        <section className="ux-page-head"><h1>Scenario unavailable</h1><p>Check your sign-in state and whether the local platform services are running.</p></section>
+        <section className="ux-page-head"><h1>{t("platform.live.unavailableTitle")}</h1><p>{t("platform.live.unavailableBody")}</p></section>
       ) : (
         <>
           <section className={`scenario-workbench-hero ${scenario.status === "ready" ? "ready" : ""}`}>
             <div className="scenario-workbench-title">
-              <span>{template.category} · {surface.label} · {statusLabel(scenario.status)}</span>
+              <span>{template.category} · {t(surface.label)} · {t(statusLabel(scenario.status))}</span>
               <h1>{scenario.name}</h1>
               <p>{scenario.description || scenario.processingGoal}</p>
             </div>
             <div className="scenario-workbench-primary">
-              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{surface.primaryAction.label}</Link>
-              <Link href={`/app/scenarios/${scenario.id}/data`}>Manage files</Link>
+              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{t(surface.primaryAction.label)}</Link>
+              <Link href={`/app/scenarios/${scenario.id}/data`}>{t("platform.live.manageFiles")}</Link>
             </div>
             <div className="ux-workbench-meta scenario-workbench-meta">
-              <Meta label="Owner" value={scenario.ownerName} />
-              <Meta label="Sources" value={`${scenario.sourceCount} `} />
-              <Meta label="Publish scope" value={visibilityText(scenario.visibility)} />
+              <Meta label={t("platform.live.owner")} value={scenario.ownerName} />
+              <Meta label={t("platform.live.sources")} value={`${scenario.sourceCount} `} />
+              <Meta label={t("platform.live.publishScope")} value={t(visibilityText(scenario.visibility))} />
             </div>
-            <nav className="ux-tabs" aria-label="Scenario workbench">
+            <nav className="ux-tabs" aria-label={t("platform.live.workbenchAria")}>
               {tabs.map((item) => (
                 <Link key={item} href={`/app/scenarios/${scenario.id}${item === "overview" ? "" : `/${item}`}`} className={item === tab ? "active" : ""}>
-                  {scenarioTabLabel(item)}
+                  {t(scenarioTabLabel(item))}
                 </Link>
               ))}
             </nav>
@@ -1905,12 +1971,13 @@ export function ScenarioDetailPage({
 }
 
 export function NotFoundScenarioPage() {
+  const { t } = useI18n();
   return (
-    <FrontstageShell active="/app/scenarios" title="Scenario not found">
+    <FrontstageShell active="/app/scenarios" title={t("shell.scenarioNotFound")}>
       <section className="ux-page-head">
-        <h1>We could not find this scenario</h1>
-        <p>It may be archived, or your account has no access.</p>
-        <Link className="ux-primary-link" href="/app/scenarios">Back to scenarios</Link>
+        <h1>{t("platform.notFound.scenarioTitle")}</h1>
+        <p>{t("platform.notFound.scenarioBody")}</p>
+        <Link className="ux-primary-link" href="/app/scenarios">{t("platform.notFound.backToScenarios")}</Link>
       </section>
     </FrontstageShell>
   );
@@ -1931,42 +1998,43 @@ function LiveScenarioOverview({
   knowledge: LiveKnowledgeRecord[];
   sessions: ScenarioChatSessionSummary[];
 }) {
+  const { t } = useI18n();
   const latestTask = tasks[0];
   const ready = scenario.status === "ready";
   return (
     <div className="scenario-live-console">
       <section className="scenario-use-panel">
         <div className="scenario-use-copy">
-          <span>{ready ? "Available now" : statusLabel(scenario.status)}</span>
-          <h2>{surface.workspaceTitle}</h2>
-          <p>{ready ? surface.description : latestTask?.userMessage ?? "Once the admin finishes ingest and publish, the usable workbench appears here."}</p>
+          <span>{ready ? t("platform.live.availableNow") : t(statusLabel(scenario.status))}</span>
+          <h2>{t(surface.workspaceTitle)}</h2>
+          <p>{ready ? t(surface.description) : latestTask?.userMessage ?? t("platform.live.publishPending")}</p>
         </div>
         <div className="scenario-use-actions">
-          <Link className="primary" href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{surface.primaryAction.label}</Link>
+          <Link className="primary" href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{t(surface.primaryAction.label)}</Link>
           {surface.secondaryActions.slice(0, 2).map((action) => (
-            <Link key={action.label} href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(action.prompt)}`}>{action.label}</Link>
+            <Link key={action.label} href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(action.prompt)}`}>{t(action.label)}</Link>
           ))}
         </div>
       </section>
 
       <section className="scenario-live-section scenario-history-section">
         <header>
-          <div><span>History</span><h3>Recent activity in this scenario</h3></div>
-          <Link href={`/app/scenarios/${scenario.id}/ask`}>New chat</Link>
+          <div><span>{t("platform.live.history")}</span><h3>{t("platform.live.recentActivity")}</h3></div>
+          <Link href={`/app/scenarios/${scenario.id}/ask`}>{t("platform.live.newChat")}</Link>
         </header>
         <div className="scenario-history-list">
           {sessions.slice(0, 4).map((session) => (
             <Link key={session.id} href={`/app/scenarios/${scenario.id}/ask?session=${session.id}`}>
               <b>{session.title}</b>
               <span>{session.latestMessage}</span>
-              <small>{session.updatedAtText} · {session.messageCount} messages</small>
+              <small>{session.updatedAtText} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
             </Link>
           ))}
           {sessions.length === 0 ? (
             <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>
-              <b>No conversations yet</b>
-              <span>Your first question is saved here automatically.</span>
-              <small>{surface.primaryAction.label}</small>
+              <b>{t("platform.live.noConversations")}</b>
+              <span>{t("platform.live.firstQuestionSaved")}</span>
+              <small>{t(surface.primaryAction.label)}</small>
             </Link>
           ) : null}
         </div>
@@ -1974,8 +2042,8 @@ function LiveScenarioOverview({
 
       <section className="scenario-live-section scenario-material-section">
         <header>
-          <div><span>File management</span><h3>{knowledge.length} ingested knowledge objects</h3></div>
-          <Link href={`/app/scenarios/${scenario.id}/data`}>View files</Link>
+          <div><span>{t("platform.live.fileManagement")}</span><h3>{t("platform.live.ingestedObjects", { count: knowledge.length })}</h3></div>
+          <Link href={`/app/scenarios/${scenario.id}/data`}>{t("platform.live.viewFiles")}</Link>
         </header>
         <div className="scenario-material-list">
           {knowledge.slice(0, 5).map((item) => (
@@ -1985,25 +2053,25 @@ function LiveScenarioOverview({
               <small>{truncateText(item.content, 72)}</small>
             </Link>
           ))}
-          {knowledge.length === 0 ? <p>After an admin confirms ingest, the files, chunks, graph, or pages this scenario can retrieve appear here.</p> : null}
+          {knowledge.length === 0 ? <p>{t("platform.live.ingestPending")}</p> : null}
         </div>
       </section>
 
       <aside className="scenario-live-rail">
         <section>
-          <span>Deliverables</span>
+          <span>{t("platform.live.deliverables")}</span>
           <div className="scenario-output-actions">
-            {(template.outputCapabilities.length ? template.outputCapabilities : ["Business summary", "Citations", "Next actions"]).slice(0, 5).map((item) => (
+            {(template.outputCapabilities.length ? template.outputCapabilities : [t("platform.live.businessSummary"), t("platform.live.citations"), t("platform.live.nextActions")]).slice(0, 5).map((item) => (
               <Link key={item} href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(`Generate ${item}`)}`}>{item}</Link>
             ))}
           </div>
         </section>
         <section>
-          <span>Backend status</span>
+          <span>{t("platform.live.backendStatus")}</span>
           <div className="scenario-state-stack">
-            <div><b>{statusLabel(scenario.status)}</b><small>{latestTask?.currentStep ?? scenario.processingGoal}</small></div>
-            <div><b>{visibilityText(scenario.visibility)}</b><small>Permission filters apply to answers, files, and deliverables.</small></div>
-            <div><b>{surface.label}</b><small>{surface.headline}</small></div>
+            <div><b>{t(statusLabel(scenario.status))}</b><small>{latestTask?.currentStep ?? scenario.processingGoal}</small></div>
+            <div><b>{t(visibilityText(scenario.visibility))}</b><small>{t("platform.live.permissionFilters")}</small></div>
+            <div><b>{t(surface.label)}</b><small>{t(surface.headline)}</small></div>
           </div>
         </section>
       </aside>
@@ -2024,11 +2092,12 @@ function ScenarioSessionList({
   onOpen: (sessionId: string) => void;
   onNew: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <aside className="scenario-chat-history">
       <header>
-        <span>History</span>
-        <button type="button" onClick={onNew}>New</button>
+        <span>{t("platform.live.history")}</span>
+        <button type="button" onClick={onNew}>{t("platform.live.newChat")}</button>
       </header>
       <div>
         {sessions.map((session) => (
@@ -2040,13 +2109,13 @@ function ScenarioSessionList({
           >
             <b>{session.title}</b>
             <span>{session.latestMessage}</span>
-            <small>{session.updatedAtText} · {session.messageCount} messages</small>
+            <small>{session.updatedAtText} · {t("platform.live.messagesCount", { count: session.messageCount })}</small>
           </button>
         ))}
         {sessions.length === 0 ? (
           <Link href={`/app/scenarios/${scenarioId}/ask`}>
-            <b>No history</b>
-            <span>Your first message is saved here.</span>
+            <b>{t("platform.live.noHistory")}</b>
+            <span>{t("platform.live.firstMessageSaved")}</span>
           </Link>
         ) : null}
       </div>
@@ -2055,9 +2124,10 @@ function ScenarioSessionList({
 }
 
 function LiveScenarioDataPanel({ knowledge }: { knowledge: LiveKnowledgeRecord[] }) {
+  const { t } = useI18n();
   return (
     <section className="ux-panel">
-      <PanelTitle title="Ingested files" actionHref="/app/templates" actionLabel="Create another scenario" />
+      <PanelTitle title={t("platform.live.ingestedFiles")} actionHref="/app/templates" actionLabel={t("platform.live.createAnother")} />
       <div className="ux-table">
         {knowledge.map((item) => (
           <article key={item.id}>
@@ -2066,11 +2136,11 @@ function LiveScenarioDataPanel({ knowledge }: { knowledge: LiveKnowledgeRecord[]
               <span>{displaySourceName(item.sourceOriginalName)}</span>
             </div>
             <em>{item.ragEngine}</em>
-            <strong>{visibilityText(item.visibility)}</strong>
+            <strong>{t(visibilityText(item.visibility))}</strong>
             <small>{item.content}</small>
           </article>
         ))}
-        {knowledge.length === 0 ? <p>No knowledge objects yet; wait for an admin to finish ingest.</p> : null}
+        {knowledge.length === 0 ? <p>{t("platform.live.noKnowledgeYet")}</p> : null}
       </div>
     </section>
   );
@@ -2097,6 +2167,7 @@ function LiveScenarioAskPanel({
   token: string | null;
   onSessionsChange: (sessions: ScenarioChatSessionSummary[]) => void;
 }) {
+  const { t } = useI18n();
   const [sessionSummaries, setSessionSummaries] = useState<ScenarioChatSessionSummary[]>(sessions);
   const [activeSession, setActiveSession] = useState<ScenarioChatSession | null>(null);
   const [input, setInput] = useState(initialQuery ?? "");
@@ -2134,11 +2205,11 @@ function LiveScenarioAskPanel({
         cache: "no-store"
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not open this conversation.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.live.openConversationError"));
       setActiveSession(body.session as ScenarioChatSession);
       setAnimatingId(null);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not open this conversation.");
+      setMessage(error instanceof Error ? error.message : t("platform.live.openConversationError"));
     } finally {
       setPending(false);
     }
@@ -2174,14 +2245,14 @@ function LiveScenarioAskPanel({
         body: JSON.stringify({ query: q })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not start a chat.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.startError"));
       const createdScenarioSession = body.session as ScenarioChatSession;
       setActiveSession(createdScenarioSession);
       const lastCreatedScenarioMsg = createdScenarioSession.messages[createdScenarioSession.messages.length - 1];
       if (lastCreatedScenarioMsg?.role === "assistant") setAnimatingId(lastCreatedScenarioMsg.id);
       await refreshSessions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not start a chat.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.startError"));
       setInput(q);       // Restore the input on failure so the user message is not lost.
       setActiveSession(null);
       setAnimatingId(null);
@@ -2217,14 +2288,14 @@ function LiveScenarioAskPanel({
         body: JSON.stringify({ query: q })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message ?? "Could not send the follow-up.");
+      if (!response.ok) throw new Error(body.message ?? t("platform.chat.sendError"));
       const appendedScenarioSession = body.session as ScenarioChatSession;
       setActiveSession(appendedScenarioSession);
       const lastAppendedScenarioMsg = appendedScenarioSession.messages[appendedScenarioSession.messages.length - 1];
       if (lastAppendedScenarioMsg?.role === "assistant") setAnimatingId(lastAppendedScenarioMsg.id);
       await refreshSessions();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not send the follow-up.");
+      setMessage(error instanceof Error ? error.message : t("platform.chat.sendError"));
       setActiveSession(sessionBeforeUpdate);  // Roll back the optimistic update.
       setAnimatingId(null);
       setInput(q);                            // Restore the input.
@@ -2258,8 +2329,8 @@ function LiveScenarioAskPanel({
   }, [scenario.id, scenario.status, token, initialQuery, initialSessionId]);
 
   const fallbackText = scenario.status === "ready"
-    ? surface.emptyState
-    : tasks[0]?.userMessage ?? "This scenario is still being processed in the admin console.";
+    ? t(surface.emptyState)
+    : tasks[0]?.userMessage ?? t("platform.live.processingInAdmin");
 
   return (
     <div className="scenario-chat-workspace">
@@ -2277,8 +2348,8 @@ function LiveScenarioAskPanel({
       <section className="scenario-chat-main">
         {!activeSession ? (
           <div className="scenario-chat-empty">
-            <span>{surface.label}</span>
-            <h2>{surface.workspaceTitle}</h2>
+            <span>{t(surface.label)}</span>
+            <h2>{t(surface.workspaceTitle)}</h2>
             <p>{fallbackText}</p>
             <div className="scenario-prompt-grid">
               {surface.quickPrompts.slice(0, 4).map((prompt) => (
@@ -2290,7 +2361,7 @@ function LiveScenarioAskPanel({
           <div className="scenario-message-list">
             {activeSession.messages.map((item) => (
               <article key={item.id} className={`scenario-message ${item.role}`}>
-                <span>{item.role === "user" ? "You" : scenario.name}</span>
+                <span>{item.role === "user" ? t("shell.you") : scenario.name}</span>
                 {item.role === "user" ? <p>{item.content}</p> : <AssistantText content={item.content} animate={item.id === animatingId} />}
                 {item.role === "assistant" && item.citations?.length ? (
                   <ScenarioInlineCitations citations={item.citations} />
@@ -2301,7 +2372,7 @@ function LiveScenarioAskPanel({
             {pending ? (
               <article className="scenario-message assistant">
                 <span>{scenario.name}</span>
-                <p>Answering from this scenario's files...</p>
+                <p>{t("platform.live.answering")}</p>
               </article>
             ) : null}
           </div>
@@ -2321,15 +2392,15 @@ function LiveScenarioAskPanel({
             name="q"
             value={input}
             onChange={(event) => setInput(event.currentTarget.value)}
-            placeholder={scenario.status === "ready" ? surface.primaryAction.prompt : "Available once the admin finishes ingest..."}
+            placeholder={scenario.status === "ready" ? surface.primaryAction.prompt : t("platform.live.availableAfterIngest")}
           />
-          <button type="submit" disabled={pending || scenario.status !== "ready"}>{pending ? "Generating" : "Send"}</button>
+          <button type="submit" disabled={pending || scenario.status !== "ready"}>{pending ? t("platform.chat.generating") : t("platform.chat.send")}</button>
         </form>
       </section>
       <aside className={`scenario-evidence-rail mode-${surface.rightRailMode}`}>
         <section>
-          <span>{surface.contextPanelTitle}</span>
-          <h2>{latestCitations.length ? `${latestCitations.length} citations in this answer` : "Waiting for this answer"}</h2>
+          <span>{t(surface.contextPanelTitle)}</span>
+          <h2>{latestCitations.length ? t("platform.live.citationsInAnswer", { count: latestCitations.length }) : t("platform.live.waitingForAnswer")}</h2>
           <div className="scenario-evidence-list">
             {(latestCitations.length ? latestCitations : knowledge.slice(0, 5).map((item) => ({
               knowledgeObjectId: item.id,
@@ -2341,20 +2412,20 @@ function LiveScenarioAskPanel({
           </div>
         </section>
         <section>
-          <span>Deliverables</span>
+          <span>{t("platform.live.deliverables")}</span>
           <div className="scenario-output-actions">
             {surface.secondaryActions.map((action) => (
-              <button key={action.label} type="button" onClick={() => setInput(action.prompt)}>{action.label}</button>
+              <button key={action.label} type="button" onClick={() => setInput(action.prompt)}>{t(action.label)}</button>
             ))}
           </div>
         </section>
         <section>
-          <span>File status</span>
+          <span>{t("platform.live.fileStatus")}</span>
           <div className="scenario-state-stack">
-            <div><b>{statusLabel(scenario.status)}</b><small>{tasks[0]?.currentStep ?? scenario.processingGoal}</small></div>
-            <div><b>{knowledge.length} knowledge objects</b><small>Answers are filtered by your account permissions.</small></div>
+            <div><b>{t(statusLabel(scenario.status))}</b><small>{tasks[0]?.currentStep ?? scenario.processingGoal}</small></div>
+            <div><b>{t("platform.live.knowledgeObjectsCount", { count: knowledge.length })}</b><small>{t("platform.live.answersFiltered")}</small></div>
           </div>
-          <Link className="scenario-rail-link" href={`/app/scenarios/${scenario.id}/data`}>Manage files</Link>
+          <Link className="scenario-rail-link" href={`/app/scenarios/${scenario.id}/data`}>{t("platform.live.manageFiles")}</Link>
         </section>
       </aside>
     </div>
@@ -2362,13 +2433,14 @@ function LiveScenarioAskPanel({
 }
 
 function ScenarioInlineCitations({ citations }: { citations: ScenarioCitation[] }) {
+  const { t } = useI18n();
   const groups = groupScenarioCitations(citations);
   return (
-    <div className="scenario-inline-citations" aria-label="Evidence types behind this answer">
+    <div className="scenario-inline-citations" aria-label={t("platform.live.evidenceTypesLabel")}>
       {groups.map((group) => (
         <em key={group.engine} className={`citation-${scenarioEngineClass(group.engine)}`}>
-          <span>{group.label}</span>
-          <b>{group.count} citations</b>
+          <span>{t(group.label)}</span>
+          <b>{t("platform.chat.citationsCount", { count: group.count })}</b>
         </em>
       ))}
     </div>
@@ -2376,74 +2448,77 @@ function ScenarioInlineCitations({ citations }: { citations: ScenarioCitation[] 
 }
 
 function ScenarioEvidenceCard({ citation }: { citation: ScenarioCitation }) {
+  const { t } = useI18n();
   const label = knowledgeTypeLabel(citation.engine);
   const facts = scenarioEvidenceFacts(citation.excerpt);
   return (
     <article className={`scenario-evidence-card evidence-${scenarioEngineClass(citation.engine)}`}>
       <header>
-        <span>{label}</span>
-        <small>{scenarioEvidenceBadge(citation.engine)}</small>
+        <span>{t(label)}</span>
+        <small>{t(scenarioEvidenceBadge(citation.engine))}</small>
       </header>
       <b>{displaySourceName(citation.sourceOriginalName)}</b>
-      <p>{scenarioEvidenceHint(citation.engine)}</p>
+      <p>{t(scenarioEvidenceHint(citation.engine))}</p>
       {facts.length > 1 ? (
         <ul>
           {facts.slice(0, 3).map((fact) => <li key={fact}>{fact}</li>)}
         </ul>
       ) : (
-        <strong>{facts[0] ?? "Evidence matched but has no summary to show."}</strong>
+        <strong>{facts[0] ?? t("platform.evidence.noSummary")}</strong>
       )}
     </article>
   );
 }
 
 function LiveScenarioOutputsPanel({ scenario, template, surface, knowledge }: { scenario: LiveScenarioRecord; template: LiveWorkbenchTemplate; surface: ScenarioProductSurface; knowledge: LiveKnowledgeRecord[] }) {
+  const { t } = useI18n();
   return (
     <div className="scenario-output-workspace">
       <section className="scenario-output-head">
         <div>
-          <span>{surface.label}</span>
-          <h2>Business deliverables this scenario keeps producing</h2>
-          <p>Deliverables are generated from ingested files; afterwards you can download, share, or keep asking inside the scenario.</p>
+          <span>{t(surface.label)}</span>
+          <h2>{t("platform.live.outputsHeadline")}</h2>
+          <p>{t("platform.live.outputsBody")}</p>
         </div>
-        <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{surface.primaryAction.label}</Link>
+        <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(surface.primaryAction.prompt)}`}>{t(surface.primaryAction.label)}</Link>
       </section>
       <div className="scenario-output-list">
-        {(template.outputCapabilities.length ? template.outputCapabilities : ["Business summary", "Citations", "Next actions"]).map((item) => (
+        {(template.outputCapabilities.length ? template.outputCapabilities : [t("platform.live.businessSummary"), t("platform.live.citations"), t("platform.live.nextActions")]).map((item) => (
           <article key={item}>
             <div>
-              <span>Generates</span>
+              <span>{t("platform.live.generates")}</span>
               <h3>{item}</h3>
-              <p>{surface.description}</p>
+              <p>{t(surface.description)}</p>
             </div>
             <div className="scenario-output-row-actions">
-              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(`Generate ${item}`)}`}>Generate</Link>
-              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(`Generate ${item} (downloadable)`)}`}>Generate download</Link>
+              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(`Generate ${item}`)}`}>{t("platform.live.generate")}</Link>
+              <Link href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(`Generate ${item} (downloadable)`)}`}>{t("platform.live.generateDownload")}</Link>
             </div>
           </article>
         ))}
       </div>
       <section className="scenario-output-sources">
-        <span>Files available for generation</span>
+        <span>{t("platform.live.filesForGeneration")}</span>
         {knowledge.slice(0, 6).map((item) => (
           <Link key={item.id} href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(item.title)}`}>
             <b>{displaySourceName(item.sourceOriginalName)}</b>
             <small>{item.ragEngine} · {truncateText(item.content, 90)}</small>
           </Link>
         ))}
-        {knowledge.length === 0 ? <p>Knowledge objects appear once an admin confirms ingest.</p> : null}
+        {knowledge.length === 0 ? <p>{t("platform.live.objectsAfterIngest")}</p> : null}
       </section>
     </div>
   );
 }
 
 function LiveScenarioSettingsPanel({ scenario, surface, knowledge }: { scenario: LiveScenarioRecord; surface: ScenarioProductSurface; knowledge: LiveKnowledgeRecord[] }) {
+  const { t } = useI18n();
   const engines = Array.from(new Set(knowledge.map((item) => item.ragEngine)));
   return (
     <div className="ux-settings-grid">
-      <SettingsBlock title="Scenario access" items={[visibilityText(scenario.visibility), `Owner: ${scenario.ownerName}`, `Sources: ${scenario.sourceCount} `]} />
-      <SettingsBlock title="Processing" items={[scenario.processingGoal || "Waiting for admin review", engines.length ? `Ingested: ${engines.join(", ")}` : "Ingest not finished"]} />
-      <SettingsBlock title="Workbench" items={[surface.label, surface.workspaceTitle, scenario.status === "ready" ? surface.primaryAction.label : "Waiting for publish"]} />
+      <SettingsBlock title={t("platform.live.scenarioAccess")} items={[t(visibilityText(scenario.visibility)), t("platform.live.ownerValue", { name: scenario.ownerName }), t("platform.live.sourcesValue", { count: scenario.sourceCount })]} />
+      <SettingsBlock title={t("platform.live.processing")} items={[scenario.processingGoal || t("platform.live.waitingForAdminReview"), engines.length ? t("platform.live.ingestedValue", { engines: engines.join(", ") }) : t("platform.live.ingestNotFinished")]} />
+      <SettingsBlock title={t("platform.live.workbench")} items={[t(surface.label), t(surface.workspaceTitle), scenario.status === "ready" ? t(surface.primaryAction.label) : t("platform.live.waitingForPublish")]} />
     </div>
   );
 }
@@ -2452,12 +2527,13 @@ function FrontstageShell({ active, title, eyebrow, initialSnapshot, children }: 
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const { snapshot } = usePlatformSnapshot(initialSnapshot);
   const pendingCount = snapshot.tasks.filter((task) => task.status !== "ready" && task.status !== "failed").length;
   const currentUser = auth.user?.display_name || auth.user?.username || workspaceProfile.currentUser;
   const userInitial = currentUser.trim().slice(0, 1) || "U";
-  const roleLabel = auth.user?.is_admin ? "Admin" : "Member";
-  const scopeLabel = formatUserScope(auth.user);
+  const roleLabel = auth.user?.is_admin ? t("shell.roleAdmin") : t("shell.roleMember");
+  const scopeLabel = formatUserScope(auth.user, t);
 
   async function handleLogout() {
     await auth.logout();
@@ -2467,16 +2543,17 @@ function FrontstageShell({ active, title, eyebrow, initialSnapshot, children }: 
   return (
     <div className="ux-shell">
       <aside className="ux-sidebar">
-        <Link href="/" className="ux-brand" aria-label="Back to the website"><Logo size={30} /></Link>
-        <Link className="ux-sidebar-action" href="/app/templates">New scenario</Link>
-        <nav className="ux-nav" aria-label="Workspace navigation">
+        <Link href="/" className="ux-brand" aria-label={t("nav.backToSite")}><Logo size={30} /></Link>
+        <Link className="ux-sidebar-action" href="/app/templates">{t("shell.newScenario")}</Link>
+        <nav className="ux-nav" aria-label={t("shell.navLabel")}>
           {workspaceNav.map((item) => {
             const isActive = active === item.href || (item.href !== "/app" && active.startsWith(item.href));
+            const keys = workspaceNavKeys[item.href];
             return (
               <Link key={item.href} href={item.href} className={isActive ? "active" : ""}>
                 <i aria-hidden>{navGlyphs[item.href] ?? "•"}</i>
-                <b>{item.label}</b>
-                <span>{item.description}</span>
+                <b>{keys ? t(keys.label) : item.label}</b>
+                <span>{keys ? t(keys.description) : item.description}</span>
               </Link>
             );
           })}
@@ -2490,16 +2567,17 @@ function FrontstageShell({ active, title, eyebrow, initialSnapshot, children }: 
           </div>
           <label className="ux-search">
             <span>⌘K</span>
-            <input placeholder="Search scenarios, files, answers, tasks..." />
+            <input placeholder={t("shell.searchPlaceholder")} />
           </label>
           <div className="ux-header-actions">
             <Link className="ux-header-link" href="/app/tasks">
-              <span>Pending</span>
+              <span>{t("shell.pending")}</span>
               <strong>{pendingCount}</strong>
             </Link>
+            <LanguageSwitcher />
             <ThemeToggle />
             <details className="ux-account-menu">
-              <summary aria-label="Account and permission menu">
+              <summary aria-label={t("shell.accountMenuLabel")}>
                 <i>{userInitial}</i>
                 <span>
                   <b>{currentUser}</b>
@@ -2511,23 +2589,23 @@ function FrontstageShell({ active, title, eyebrow, initialSnapshot, children }: 
                   <i>{userInitial}</i>
                   <div>
                     <b>{currentUser}</b>
-                    <span>{auth.user?.username ?? "Current account"} · {roleLabel}</span>
+                    <span>{auth.user?.username ?? t("shell.currentAccount")} · {roleLabel}</span>
                   </div>
                 </div>
                 <dl className="ux-account-meta">
                   <div>
-                    <dt>Permission scope</dt>
+                    <dt>{t("shell.permissionScope")}</dt>
                     <dd>{scopeLabel}</dd>
                   </div>
                   <div>
-                    <dt>Data boundary</dt>
-                    <dd>Personal, team, and company knowledge filtered by account</dd>
+                    <dt>{t("shell.dataBoundary")}</dt>
+                    <dd>{t("shell.dataBoundaryValue")}</dd>
                   </div>
                 </dl>
                 <div className="ux-account-actions">
-                  <Link href="/app/settings">Account and workspace settings</Link>
-                  {auth.user?.is_admin ? <Link href="/admin">Open the admin console</Link> : null}
-                  <button type="button" onClick={handleLogout}>Sign out</button>
+                  <Link href="/app/settings">{t("shell.accountSettings")}</Link>
+                  {auth.user?.is_admin ? <Link href="/admin">{t("shell.openAdminConsole")}</Link> : null}
+                  <button type="button" onClick={handleLogout}>{t("common.signOut")}</button>
                 </div>
               </div>
             </details>
@@ -2539,16 +2617,19 @@ function FrontstageShell({ active, title, eyebrow, initialSnapshot, children }: 
   );
 }
 
-function formatUserScope(user: { organization_id?: string; team_ids?: string[] } | null) {
-  if (!user) return "Not signed in";
-  const organizationName = formatOrganizationName(user.organization_id);
+function formatUserScope(
+  user: { organization_id?: string; team_ids?: string[] } | null,
+  t: (key: string) => string
+) {
+  if (!user) return t("shell.notSignedIn");
+  const organizationName = formatOrganizationName(user.organization_id, t);
   const teamNames = (user.team_ids ?? []).map(formatTeamName).filter(Boolean);
   if (teamNames.length > 0) return `${organizationName} / ${teamNames.join(", ")}`;
-  return `${organizationName} / Personal space`;
+  return `${organizationName} / ${t("shell.personalSpace")}`;
 }
 
-function formatOrganizationName(id?: string) {
-  if (!id) return "Organization";
+function formatOrganizationName(id: string | undefined, t: (key: string) => string) {
+  if (!id) return t("shell.organization");
   const map: Record<string, string> = {
     "org-main": "Northwind Labs",
     "org_companybrain": "Northwind Labs"
@@ -2567,34 +2648,35 @@ function formatTeamName(id: string) {
 }
 
 function ScenarioWorkbenchHeader({ workbench, activeTab }: { workbench: ScenarioWorkbench; activeTab: ScenarioTab }) {
+  const { t } = useI18n();
   const availability = scenarioAvailability(workbench.scenario);
   const isReady = workbench.scenario.status === "ready";
   return (
     <section className={`ux-workbench-head ${isReady ? "ready" : ""}`}>
       <div className="ux-workbench-title">
-        <span>{workbench.template.category} · {availability.label}</span>
+        <span>{workbench.template.category} · {t(availability.label)}</span>
         <h1>{workbench.scenario.name}</h1>
-        <p>{isReady ? availability.description : workbench.scenario.description}</p>
+        <p>{isReady ? t(availability.description) : workbench.scenario.description}</p>
       </div>
       <div className="ux-workbench-meta">
-        <Meta label="Owner" value={workbench.scenario.owner} />
-        <Meta label="Sources" value={`${workbench.dataSources.length} `} />
-        <Meta label="Publish scope" value={workbench.settings.publicationMode} />
+        <Meta label={t("platform.live.owner")} value={workbench.scenario.owner} />
+        <Meta label={t("platform.live.sources")} value={`${workbench.dataSources.length} `} />
+        <Meta label={t("platform.live.publishScope")} value={t(publicationModeKey(workbench.settings.publicationMode))} />
       </div>
       {!isReady && (
         <div className="ux-lifecycle">
           {workbench.lifecycle.map((stage, index) => (
             <div key={stage.key} className={index < 4 ? "done" : ""}>
               <i>{index + 1}</i>
-              <b>{stage.label}</b>
-              <span>{stage.description}</span>
+              <b>{t(stage.label)}</b>
+              <span>{t(stage.description)}</span>
             </div>
           ))}
         </div>
       )}
-      <nav className="ux-tabs" aria-label="Scenario workbench">
+      <nav className="ux-tabs" aria-label={t("platform.live.workbenchAria")}>
         {workbench.tabs.map((item) => (
-          <Link key={item.key} href={item.href} className={item.key === activeTab ? "active" : ""}>{item.label}</Link>
+          <Link key={item.key} href={item.href} className={item.key === activeTab ? "active" : ""}>{t(item.label)}</Link>
         ))}
       </nav>
     </section>
@@ -2602,6 +2684,7 @@ function ScenarioWorkbenchHeader({ workbench, activeTab }: { workbench: Scenario
 }
 
 function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
+  const { t } = useI18n();
   const availability = scenarioAvailability(workbench.scenario);
   const primaryQuestion = workbench.scenario.recommendedQuestions[0] ?? workbench.template.demoWalkthrough.sampleQuestion;
   const primaryOutputs = workbench.outputs.slice(0, 3);
@@ -2611,25 +2694,25 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
       <section className="scenario-use-console">
         <div className="scenario-use-head">
           <div>
-            <span>{availability.label}</span>
-            <h2>This scenario is ready for real work</h2>
+            <span>{t(availability.label)}</span>
+            <h2>{t("platform.ready.readyForWork")}</h2>
             <p>{workbench.scenario.description}</p>
           </div>
           <div className="scenario-use-status">
-            <b>Files published</b>
-            <span>{workbench.dataSources.length} sources ·  {workbench.outputs.length} deliverables</span>
+            <b>{t("platform.ready.filesPublished")}</b>
+            <span>{t("platform.ready.sourcesDeliverables", { sources: workbench.dataSources.length, deliverables: workbench.outputs.length })}</span>
           </div>
         </div>
 
         <form className="scenario-question-bar" action={`/app/scenarios/${workbench.scenario.id}/ask`}>
-          <label htmlFor="ready-scenario-question">Ask this scenario or generate a deliverable</label>
+          <label htmlFor="ready-scenario-question">{t("platform.ready.askOrGenerate")}</label>
           <div>
-            <input id="ready-scenario-question" name="q" defaultValue={primaryQuestion} aria-label="Scenario question" />
-            <button type="submit">Send</button>
+            <input id="ready-scenario-question" name="q" defaultValue={primaryQuestion} aria-label={t("platform.ready.scenarioQuestion")} />
+            <button type="submit">{t("platform.chat.send")}</button>
           </div>
         </form>
 
-        <div className="scenario-business-actions" aria-label="Business tasks you can run">
+        <div className="scenario-business-actions" aria-label={t("platform.ready.businessTasks")}>
           {primaryOutputs.map((output) => (
             <Link key={output.id} href={`/app/scenarios/${workbench.scenario.id}/outputs`}>
               <small>{output.status}</small>
@@ -2643,10 +2726,10 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
       <section className="scenario-data-console">
         <div className="scenario-section-title">
           <div>
-            <span>Scenario files</span>
-            <h3>Files this scenario uses</h3>
+            <span>{t("platform.ready.scenarioFiles")}</span>
+            <h3>{t("platform.ready.filesUsed")}</h3>
           </div>
-          <Link href={`/app/scenarios/${workbench.scenario.id}/data`}>View all files</Link>
+          <Link href={`/app/scenarios/${workbench.scenario.id}/data`}>{t("platform.ready.viewAllFiles")}</Link>
         </div>
         <div className="scenario-source-table">
           {primarySources.map((source) => (
@@ -2655,25 +2738,25 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
                 <b>{source.title}</b>
                 <span>{displaySourceName(source.fileName)}</span>
               </div>
-              <em>{displaySourceType(source.sourceType)}</em>
+              <em>{t(displaySourceType(source.sourceType))}</em>
               <strong>{source.status}</strong>
             </article>
           ))}
         </div>
         <div className="scenario-data-actions">
-          <button type="button" onClick={async () => { const r = await fetch(`/api/platform/scenarios/${workbench.scenario.id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "update" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? "File update request submitted."); }}>Request file update</button>
-          <button type="button" onClick={() => { window.location.href = "/app/create"; }}>Upload files again</button>
-          <button type="button" onClick={async () => { const r = await fetch(`/api/platform/scenarios/${workbench.scenario.id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "delete" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? "File deletion request submitted."); }}>Request file deletion</button>
+          <button type="button" onClick={async () => { const r = await fetch(`/api/platform/scenarios/${workbench.scenario.id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "update" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? t("platform.ready.fileUpdateSubmitted")); }}>{t("platform.ready.requestFileUpdate")}</button>
+          <button type="button" onClick={() => { window.location.href = "/app/create"; }}>{t("platform.ready.uploadAgain")}</button>
+          <button type="button" onClick={async () => { const r = await fetch(`/api/platform/scenarios/${workbench.scenario.id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "delete" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? t("platform.ready.fileDeletionSubmitted")); }}>{t("platform.ready.requestFileDeletion")}</button>
         </div>
       </section>
 
       <section className="scenario-evidence-console">
         <div className="scenario-section-title">
           <div>
-            <span>Evidence and deliverables</span>
-            <h3>Which files produced recent results</h3>
+            <span>{t("platform.ready.evidenceDeliverables")}</span>
+            <h3>{t("platform.ready.whichFilesProduced")}</h3>
           </div>
-          <Link href={`/app/scenarios/${workbench.scenario.id}/outputs`}>View deliverables</Link>
+          <Link href={`/app/scenarios/${workbench.scenario.id}/outputs`}>{t("platform.ready.viewDeliverables")}</Link>
         </div>
         <div className="scenario-evidence-grid">
           {workbench.template.demoWalkthrough.citations.map((citation) => (
@@ -2688,7 +2771,7 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
 
       <aside className="scenario-side-rail">
         <section>
-          <span>Suggested follow-ups</span>
+          <span>{t("platform.ready.suggestedFollowUps")}</span>
           <div className="scenario-suggestion-list">
             {workbench.scenario.recommendedQuestions.slice(0, 4).map((question) => (
               <Link key={question} href={`/app/scenarios/${workbench.scenario.id}/ask?q=${encodeURIComponent(question)}`}>{question}</Link>
@@ -2697,16 +2780,16 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
         </section>
 
         <section>
-          <span>Scenario governance</span>
+          <span>{t("platform.ready.scenarioGovernance")}</span>
           <div className="scenario-governance-list">
-            <div><b>Access scope</b><em>{workbench.settings.publicationMode}</em></div>
-            <div><b>Answer policy</b><em>{workbench.settings.answerPolicy}</em></div>
-            <div><b>File policy</b><em>{workbench.settings.reviewPolicy}</em></div>
+            <div><b>{t("platform.ready.accessScope")}</b><em>{t(publicationModeKey(workbench.settings.publicationMode))}</em></div>
+            <div><b>{t("platform.ready.answerPolicy")}</b><em>{workbench.settings.answerPolicy}</em></div>
+            <div><b>{t("platform.ready.filePolicy")}</b><em>{workbench.settings.reviewPolicy}</em></div>
           </div>
         </section>
 
         <section>
-          <span>Recent deliverables</span>
+          <span>{t("platform.ready.recentDeliverables")}</span>
           <div className="scenario-output-list">
             {primaryOutputs.map((output) => (
               <Link key={output.id} href={`/app/scenarios/${workbench.scenario.id}/outputs`}>
@@ -2722,25 +2805,26 @@ function ReadyScenarioUsePage({ workbench }: { workbench: ScenarioWorkbench }) {
 }
 
 function ScenarioOverview({ workbench }: { workbench: ScenarioWorkbench }) {
+  const { t } = useI18n();
   return (
     <div className="ux-workbench-grid">
       <section className="ux-panel">
-        <PanelTitle title="Suggested questions" actionHref={`/app/scenarios/${workbench.scenario.id}/ask`} actionLabel="Ask a follow-up" />
+        <PanelTitle title={t("platform.workbench.suggestedQuestions")} actionHref={`/app/scenarios/${workbench.scenario.id}/ask`} actionLabel={t("platform.workbench.askFollowup")} />
         <div className="ux-action-list">
           {workbench.scenario.recommendedQuestions.map((question) => (
             <Link key={question} href={`/app/scenarios/${workbench.scenario.id}/ask?q=${encodeURIComponent(question)}`} className="ux-action-row">
               <b>{question}</b>
-              <span>Answer with citations using this scenario's files and rules.</span>
+              <span>{t("platform.workbench.answerWithCitations")}</span>
             </Link>
           ))}
         </div>
       </section>
       <section className="ux-panel">
-        <PanelTitle title="Scenario capabilities" actionHref={`/app/scenarios/${workbench.scenario.id}/outputs`} actionLabel="View deliverables" />
+        <PanelTitle title={t("platform.workbench.scenarioCapabilities")} actionHref={`/app/scenarios/${workbench.scenario.id}/outputs`} actionLabel={t("platform.ready.viewDeliverables")} />
         <Pills items={workbench.scenario.readyActions} />
         <div className="ux-meta-stack">
-          <Meta label="Retrieval policy" value={workbench.settings.retrievalPolicy} />
-          <Meta label="Answer policy" value={workbench.settings.answerPolicy} />
+          <Meta label={t("platform.workbench.retrievalPolicy")} value={workbench.settings.retrievalPolicy} />
+          <Meta label={t("platform.ready.answerPolicy")} value={workbench.settings.answerPolicy} />
         </div>
       </section>
     </div>
@@ -2748,13 +2832,14 @@ function ScenarioOverview({ workbench }: { workbench: ScenarioWorkbench }) {
 }
 
 function ScenarioDataTab({ dataSources }: { dataSources: ScenarioDataSource[] }) {
+  const { t } = useI18n();
   return (
     <section className="ux-panel">
-      <PanelTitle title="File management" actionHref="/app/create" actionLabel="Upload files again" />
+      <PanelTitle title={t("platform.workbench.fileManagement")} actionHref="/app/create" actionLabel={t("platform.ready.uploadAgain")} />
       <div className="ux-data-request-bar">
-        <button type="button" onClick={async () => { const id = window.location.pathname.split("/")[3]; const r = await fetch(`/api/platform/scenarios/${id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "update" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? "File update request submitted."); }}>Request file update</button>
-        <button type="button" onClick={async () => { const id = window.location.pathname.split("/")[3]; const r = await fetch(`/api/platform/scenarios/${id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "delete" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? "File deletion request submitted."); }}>Request file deletion</button>
-        <button type="button" onClick={() => { window.location.href = "/admin/pipelines"; }}>View admin ingest records</button>
+        <button type="button" onClick={async () => { const id = window.location.pathname.split("/")[3]; const r = await fetch(`/api/platform/scenarios/${id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "update" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? t("platform.ready.fileUpdateSubmitted")); }}>{t("platform.ready.requestFileUpdate")}</button>
+        <button type="button" onClick={async () => { const id = window.location.pathname.split("/")[3]; const r = await fetch(`/api/platform/scenarios/${id}/data-request`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "delete" }) }); const d = await r.json().catch(() => ({})); window.alert(d.message ?? t("platform.ready.fileDeletionSubmitted")); }}>{t("platform.ready.requestFileDeletion")}</button>
+        <button type="button" onClick={() => { window.location.href = "/admin/pipelines"; }}>{t("platform.workbench.viewAdminIngest")}</button>
       </div>
       <div className="ux-table">
         {dataSources.map((source) => (
@@ -2763,7 +2848,7 @@ function ScenarioDataTab({ dataSources }: { dataSources: ScenarioDataSource[] })
               <b>{source.title}</b>
               <span>{displaySourceName(source.fileName)}</span>
             </div>
-            <em>{displaySourceType(source.sourceType)}</em>
+            <em>{t(displaySourceType(source.sourceType))}</em>
             <strong>{source.status}</strong>
             <small>{source.evidencePolicy}</small>
           </article>
@@ -2774,6 +2859,7 @@ function ScenarioDataTab({ dataSources }: { dataSources: ScenarioDataSource[] })
 }
 
 function ScenarioTasksTab({ workbench }: { workbench: ScenarioWorkbench }) {
+  const { t } = useI18n();
   if (workbench.scenario.status === "ready") {
     return (
       <div className="ux-task-grid">
@@ -2783,8 +2869,8 @@ function ScenarioTasksTab({ workbench }: { workbench: ScenarioWorkbench }) {
             <h2>{output.type}</h2>
             <p>{output.summary}</p>
             <div className="ux-actions">
-              <Link href={`/app/scenarios/${workbench.scenario.id}/outputs`}>Open deliverable</Link>
-              <Link href={`/app/scenarios/${workbench.scenario.id}/ask?q=${encodeURIComponent(output.type)}`}>Generate more</Link>
+              <Link href={`/app/scenarios/${workbench.scenario.id}/outputs`}>{t("platform.workbench.openDeliverable")}</Link>
+              <Link href={`/app/scenarios/${workbench.scenario.id}/ask?q=${encodeURIComponent(output.type)}`}>{t("platform.workbench.generateMore")}</Link>
             </div>
           </article>
         ))}
@@ -2800,6 +2886,7 @@ function ScenarioTasksTab({ workbench }: { workbench: ScenarioWorkbench }) {
 }
 
 function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbench; initialQuery?: string }) {
+  const { t } = useI18n();
   const initial = initialQuery ?? workbench.template.demoWalkthrough.sampleQuestion;
   const [query, setQuery] = useState(initial);
   const isReady = workbench.scenario.status === "ready";
@@ -2826,8 +2913,8 @@ function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbe
         </div>
         <section className="ux-chat-action-board">
           <div>
-            <h2>{isReady ? "Continue the work" : "Next steps in this scenario"}</h2>
-            <p>{isReady ? "Keep asking, generate deliverables, and capture tasks inside this scenario." : "Finish validation, review, publishing, and deliverable generation inside this scenario."}</p>
+            <h2>{isReady ? t("platform.workbench.continueWork") : t("platform.workbench.nextSteps")}</h2>
+            <p>{isReady ? t("platform.workbench.keepAsking") : t("platform.workbench.finishValidation")}</p>
           </div>
           <div className="ux-chat-action-grid">
             {workbench.outputs.slice(0, 3).map((output) => (
@@ -2847,17 +2934,17 @@ function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbe
             event.currentTarget.reset();
           }}
         >
-          <input name="q" placeholder={isReady ? "Ask this scenario, or have it generate a business deliverable..." : "Keep validating answers, citations, and boundaries in this scenario..."} />
-          <button type="submit">{isReady ? "Send" : "Validate"}</button>
+          <input name="q" placeholder={isReady ? t("platform.workbench.askPlaceholder") : t("platform.workbench.validatePlaceholder")} />
+          <button type="submit">{isReady ? t("platform.chat.send") : t("platform.workbench.validate")}</button>
         </form>
       </section>
       <aside className="ux-context-panel">
-        <span>{isReady ? "Usage policy" : "Validation policy"}</span>
-        <h2>Current policy</h2>
+        <span>{isReady ? t("platform.workbench.usagePolicy") : t("platform.workbench.validationPolicy")}</span>
+        <h2>{t("platform.workbench.currentPolicy")}</h2>
         <p>{workbench.settings.retrievalPolicy}</p>
         <p>{workbench.settings.answerPolicy}</p>
         <div className="ux-context-section">
-          <h3>Scenario files</h3>
+          <h3>{t("platform.workbench.scenarioFiles")}</h3>
           {workbench.dataSources.map((source) => (
             <div key={source.id} className="ux-context-row">
               <b>{displaySourceName(source.fileName)}</b>
@@ -2867,39 +2954,39 @@ function ScenarioAskTab({ workbench, initialQuery }: { workbench: ScenarioWorkbe
         </div>
       </aside>
     </div>
-    <section className="ux-chat-follow-grid" aria-label={isReady ? "What you can do next with this scenario" : "What you can do after validating this scenario"}>
+    <section className="ux-chat-follow-grid" aria-label={isReady ? t("platform.workbench.nextWithScenario") : t("platform.workbench.afterValidating")}>
       <article className="ux-follow-card">
-        <span>Tasks</span>
-        <h2>{workbench.tasks[0]?.title ?? `Processing ${workbench.scenario.name}`}</h2>
-        <p>{workbench.tasks[0]?.userMessage ?? "You can keep validating and reviewing this scenario."}</p>
-        <Link href={`/app/scenarios/${workbench.scenario.id}/tasks`}>View processing tasks</Link>
+        <span>{t("platform.workbench.tasksLabel")}</span>
+        <h2>{workbench.tasks[0]?.title ?? t("platform.workbench.processingScenario", { name: workbench.scenario.name })}</h2>
+        <p>{workbench.tasks[0]?.userMessage ?? t("platform.workbench.keepValidating")}</p>
+        <Link href={`/app/scenarios/${workbench.scenario.id}/tasks`}>{t("platform.workbench.viewProcessingTasks")}</Link>
       </article>
       <article className="ux-follow-card">
-        <span>File sources</span>
-        <h2>{workbench.dataSources.length} files linked</h2>
+        <span>{t("platform.workbench.fileSources")}</span>
+        <h2>{t("platform.workbench.filesLinked", { count: workbench.dataSources.length })}</h2>
         <p>{workbench.settings.retrievalPolicy}</p>
-        <Link href={`/app/scenarios/${workbench.scenario.id}/data`}>Manage file sources</Link>
+        <Link href={`/app/scenarios/${workbench.scenario.id}/data`}>{t("platform.workbench.manageFileSources")}</Link>
       </article>
       <article className="ux-follow-card">
-        <span>Deliverables</span>
+        <span>{t("platform.live.deliverables")}</span>
         <h2>{workbench.outputs[0]?.title ?? workbench.scenario.name}</h2>
-        <p>{workbench.outputs[0]?.summary ?? "Keep generating, reviewing, and publishing scenario deliverables."}</p>
+        <p>{workbench.outputs[0]?.summary ?? t("platform.workbench.keepGenerating")}</p>
         <div className="ux-follow-pills">
           {workbench.outputs.slice(0, 3).map((output) => <small key={output.id}>{output.type}</small>)}
         </div>
       </article>
     </section>
-    <section className="ux-chat-ops-board" aria-label={isReady ? "Processing path in use" : "Processing path for validation"}>
+    <section className="ux-chat-ops-board" aria-label={isReady ? t("platform.workbench.usageRules") : t("platform.workbench.publishChecks")}>
       <article>
-        <span>Scenario pipeline</span>
-        <h2>From files to answers</h2>
+        <span>{t("platform.workbench.scenarioPipeline")}</span>
+        <h2>{t("platform.workbench.fromFilesToAnswers")}</h2>
         <div className="ux-ops-list">
           {workbench.template.processingExplanation.map((step) => <p key={step}>{step}</p>)}
         </div>
       </article>
       <article>
-        <span>{isReady ? "Usage rules" : "Publish checks"}</span>
-        <h2>{isReady ? "How this scenario stays reliable" : "What to confirm before launch"}</h2>
+        <span>{isReady ? t("platform.workbench.usageRules") : t("platform.workbench.publishChecks")}</span>
+        <h2>{isReady ? t("platform.workbench.staysReliable") : t("platform.workbench.confirmBeforeLaunch")}</h2>
         <div className="ux-ops-list">
           <p>{workbench.settings.reviewPolicy}</p>
           <p>{workbench.settings.answerPolicy}</p>
@@ -2927,26 +3014,28 @@ function ScenarioOutputsTab({ outputs }: { outputs: ScenarioOutput[] }) {
 }
 
 function ScenarioSettingsTab({ settings }: { settings: ScenarioSettings }) {
+  const { t } = useI18n();
   return (
     <div className="ux-settings-grid">
-      <SettingsBlock title="Publish scope" items={[settings.publicationMode, settings.reviewPolicy]} />
-      <SettingsBlock title="Retrieval and answers" items={[settings.retrievalPolicy, settings.answerPolicy]} />
-      <SettingsBlock title="Connected sources" items={settings.connectedSources} />
+      <SettingsBlock title={t("platform.workbench.publishScope")} items={[t(publicationModeKey(settings.publicationMode)), settings.reviewPolicy]} />
+      <SettingsBlock title={t("platform.workbench.retrievalAnswers")} items={[settings.retrievalPolicy, settings.answerPolicy]} />
+      <SettingsBlock title={t("platform.workbench.connectedSources")} items={settings.connectedSources} />
     </div>
   );
 }
 
 function TemplateViewToggle({ view, onChange }: { view: TemplateLibraryView; onChange: (view: TemplateLibraryView) => void }) {
+  const { t } = useI18n();
   return (
-    <div className="template-view-switch" aria-label="Switch template view">
+    <div className="template-view-switch" aria-label={t("templates.switchView")}>
       {templateViewOptions.map((option) => (
         <button
           key={option.id}
           type="button"
           className={option.id === view ? "active" : ""}
-          aria-label={`${option.label} view`}
+          aria-label={t("templates.viewAriaLabel", { view: t(option.label) })}
           aria-pressed={option.id === view}
-          title={`${option.label} view`}
+          title={t("templates.viewAriaLabel", { view: t(option.label) })}
           onClick={() => onChange(option.id)}
         >
           <span className={`template-view-icon ${option.id}`} aria-hidden="true">
@@ -2971,12 +3060,13 @@ function TemplateMarketCanvas({
   selectedTemplate: ScenarioTemplate;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   if (templates.length === 0) {
     return (
       <div className="template-empty-state">
-        <b>No matching templates</b>
-        <p>Try another keyword, or create your own scenario and upload files.</p>
-        <Link href="/app/create?mode=blank">Create scenario</Link>
+        <b>{t("platform.template.noMatchingTemplates")}</b>
+        <p>{t("platform.template.tryAnotherKeyword")}</p>
+        <Link href="/app/create?mode=blank">{t("platform.template.createScenario")}</Link>
       </div>
     );
   }
@@ -2996,6 +3086,7 @@ function TemplateFeaturedView({
   selectedTemplate: ScenarioTemplate;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const preferredIds = ["customer-360", "support-agent", "contract-playbook", "risk-investigation"];
   const featured = [
     selectedTemplate,
@@ -3010,7 +3101,7 @@ function TemplateFeaturedView({
   return (
     <div className="template-featured-view">
       <button type="button" className="template-featured-lead" onClick={() => onSelect(lead.id)}>
-        <span>{lead.category} · {templateSurfaceLabel(lead)}</span>
+        <span>{lead.category} · {t(templateSurfaceLabel(lead))}</span>
         <h2>{lead.name}</h2>
         <p>{lead.headline}</p>
         <div>
@@ -3044,7 +3135,7 @@ function TemplateFeaturedView({
             onClick={() => onSelect(template.id)}
           >
             <b>{template.name}</b>
-            <span>{templateSurfaceLabel(template)}</span>
+            <span>{t(templateSurfaceLabel(template))}</span>
           </button>
         ))}
       </div>
@@ -3079,6 +3170,7 @@ function TemplateListView({
   selectedTemplate: ScenarioTemplate;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="template-compact-list">
       {templates.map((template) => (
@@ -3093,7 +3185,7 @@ function TemplateListView({
             <b>{template.name}</b>
             <p>{template.headline}</p>
           </div>
-          <small>{templateSurfaceLabel(template)}</small>
+          <small>{t(templateSurfaceLabel(template))}</small>
           <small>{template.acceptedFiles.slice(0, 2).join(" / ")}</small>
           <small>{template.setupTime}</small>
         </button>
@@ -3111,16 +3203,17 @@ function TemplateCompareView({
   selectedTemplate: ScenarioTemplate;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="template-compare-wrap">
       <table className="template-compare-table">
         <thead>
           <tr>
-            <th>Template</th>
-            <th>Best for</th>
-            <th>Files to prepare</th>
-            <th>Output</th>
-            <th>Review</th>
+            <th>{t("platform.template.template")}</th>
+            <th>{t("platform.template.bestFor")}</th>
+            <th>{t("platform.template.filesToPrepare")}</th>
+            <th>{t("platform.template.output")}</th>
+            <th>{t("platform.template.review")}</th>
           </tr>
         </thead>
         <tbody>
@@ -3129,7 +3222,7 @@ function TemplateCompareView({
               <td>
                 <button type="button" onClick={() => onSelect(template.id)}>
                   <b>{template.name}</b>
-                  <span>{template.category} · {templateSurfaceLabel(template)}</span>
+                  <span>{template.category} · {t(templateSurfaceLabel(template))}</span>
                 </button>
               </td>
               <td>{template.bestFor.slice(0, 3).join(", ")}</td>
@@ -3145,23 +3238,24 @@ function TemplateCompareView({
 }
 
 function TemplateCard({ template, active = false, onSelect }: { template: ScenarioTemplate; active?: boolean; onSelect?: (id: string) => void }) {
+  const { t } = useI18n();
   const surface = buildScenarioProductSurface(template.id, { productForm: template.productForm });
   return (
     <article className={`template-card ${active ? "active" : ""}`}>
       <div className="template-card-main">
-        <span>{template.category} · {surface.label}</span>
+        <span>{template.category} · {t(surface.label)}</span>
         <h2>{template.name}</h2>
         <p>{template.headline}</p>
         <Pills items={template.inputExamples.slice(0, 3)} />
       </div>
       <dl>
-        <div><dt>Outputs</dt><dd>{template.outputCapabilities.slice(0, 2).join(", ")}</dd></div>
-        <div><dt>Setup</dt><dd>{template.setupTime}</dd></div>
+        <div><dt>{t("platform.template.outputs")}</dt><dd>{template.outputCapabilities.slice(0, 2).join(", ")}</dd></div>
+        <div><dt>{t("platform.template.setup")}</dt><dd>{template.setupTime}</dd></div>
       </dl>
       <footer>
-        {onSelect ? <button type="button" onClick={() => onSelect(template.id)}>Select</button> : null}
-        <Link href={`/app/templates/${template.id}`}>View template</Link>
-        <Link className="primary" href={`/app/create?template=${template.id}`}>Create</Link>
+        {onSelect ? <button type="button" onClick={() => onSelect(template.id)}>{t("platform.template.select")}</button> : null}
+        <Link href={`/app/templates/${template.id}`}>{t("platform.template.viewTemplate")}</Link>
+        <Link className="primary" href={`/app/create?template=${template.id}`}>{t("platform.template.create")}</Link>
       </footer>
     </article>
   );
@@ -3172,55 +3266,57 @@ function templateSurfaceLabel(template: ScenarioTemplate) {
 }
 
 function TemplateCatalogPreview({ template }: { template: ScenarioTemplate }) {
+  const { t } = useI18n();
   return (
-    <aside className="template-preview-panel" aria-label="Template details">
+    <aside className="template-preview-panel" aria-label={t("platform.template.templateDetailsAria")}>
       <div className="template-preview-head">
         <span>{template.category}Template</span>
         <h2>{template.name}</h2>
         <p>{template.headline}</p>
       </div>
       <div className="template-preview-meta">
-        <div><span>Setup time</span><b>{template.setupTime}</b></div>
-        <div><span>Review requirement</span><b>{template.reviewRequirement}</b></div>
+        <div><span>{t("platform.template.setupTime")}</span><b>{template.setupTime}</b></div>
+        <div><span>{t("platform.template.reviewRequirement")}</span><b>{template.reviewRequirement}</b></div>
       </div>
       <section>
-        <span>Business questions it fits</span>
+        <span>{t("platform.template.businessQuestions")}</span>
         <div className="template-preview-pills">
           {template.bestFor.slice(0, 4).map((item) => <em key={item}>{item}</em>)}
         </div>
       </section>
       <section>
-        <span>Suggested files</span>
+        <span>{t("platform.template.suggestedFiles")}</span>
         <div className="template-preview-pills">
           {template.inputExamples.slice(0, 4).map((item) => <em key={item}>{item}</em>)}
         </div>
       </section>
       <section>
-        <span>What you get</span>
+        <span>{t("platform.template.whatYouGet")}</span>
         <ul className="template-output-list">
           {template.outputCapabilities.slice(0, 4).map((item) => <li key={item}>{item}</li>)}
         </ul>
       </section>
       <section className="template-preview-demo">
-        <span>Sample scenario</span>
+        <span>{t("platform.template.sampleScenario")}</span>
         <b>{template.demoWalkthrough.scenarioName}</b>
         <p>{template.demoWalkthrough.sampleQuestion}</p>
       </section>
       <footer>
-        <Link href={`/app/templates/${template.id}`}>View full details</Link>
-        <Link className="primary" href={`/app/create?template=${template.id}`}>Create with this template</Link>
+        <Link href={`/app/templates/${template.id}`}>{t("platform.template.viewFullDetails")}</Link>
+        <Link className="primary" href={`/app/create?template=${template.id}`}>{t("platform.template.createWithTemplate")}</Link>
       </footer>
     </aside>
   );
 }
 
 function TemplateNotFound() {
+  const { t } = useI18n();
   return (
-    <FrontstageShell active="/app/templates" title="Template not found">
+    <FrontstageShell active="/app/templates" title={t("shell.templateNotFound")}>
       <section className="ux-page-head">
-        <h1>We could not find this template</h1>
-        <p>Go back to the template library and pick another official scenario.</p>
-        <Link className="ux-primary-link" href="/app/templates">Back to templates</Link>
+        <h1>{t("platform.notFound.templateTitle")}</h1>
+        <p>{t("platform.notFound.templateBody")}</p>
+        <Link className="ux-primary-link" href="/app/templates">{t("platform.notFound.backToTemplates")}</Link>
       </section>
     </FrontstageShell>
   );
@@ -3235,6 +3331,7 @@ function ScenarioAssetRow({
   active: boolean;
   onFocus: () => void;
 }) {
+  const { t } = useI18n();
   const template = templateById(scenario.templateId) ?? customScenarioTemplate;
   const surface = buildScenarioProductSurface(template.id, { productForm: template.productForm });
   const availability = scenarioAvailability(scenario);
@@ -3245,41 +3342,42 @@ function ScenarioAssetRow({
         <div>
           <b>{scenario.name}</b>
           <p>{truncateText(scenario.description, 92)}</p>
-          <small>{scenario.owner} · {scenario.sourceCount} sources ·  {scenario.updatedAt}</small>
+          <small>{scenario.owner} · {t("platform.chat.sourcesCount", { count: scenario.sourceCount })} ·  {scenario.updatedAt}</small>
         </div>
       </Link>
-      <span className="scenario-row-surface">{surface.label}</span>
-      <span className={`home-scope-badge scope-${scenario.visibility}`}>{visibilityText(scenario.visibility)}</span>
-      <span className={`scenario-row-status status-${scenario.status}`}>{availability.label}</span>
+      <span className="scenario-row-surface">{t(surface.label)}</span>
+      <span className={`home-scope-badge scope-${scenario.visibility}`}>{t(visibilityText(scenario.visibility))}</span>
+      <span className={`scenario-row-status status-${scenario.status}`}>{t(availability.label)}</span>
       <div className="scenario-row-actions">
-        <Link href={`/app/scenarios/${scenario.id}`}>{scenario.status === "ready" ? surface.primaryAction.label : availability.nextAction}</Link>
-        <Link href={`/app/scenarios/${scenario.id}/data`}>Data</Link>
+        <Link href={`/app/scenarios/${scenario.id}`}>{t(scenario.status === "ready" ? surface.primaryAction.label : availability.nextAction)}</Link>
+        <Link href={`/app/scenarios/${scenario.id}/data`}>{t("platform.scenarioRow.data")}</Link>
       </div>
     </article>
   );
 }
 
 function ScenarioAssetInspector({ scenario }: { scenario: ScenarioInstance }) {
+  const { t } = useI18n();
   const template = templateById(scenario.templateId) ?? customScenarioTemplate;
   const surface = buildScenarioProductSurface(template.id, { productForm: template.productForm });
   const availability = scenarioAvailability(scenario);
   const prompts = scenario.status === "ready" ? surface.quickPrompts : scenario.recommendedQuestions;
   return (
     <section>
-      <span>{template.name} · {availability.label}</span>
+      <span>{template.name} · {t(availability.label)}</span>
       <h2>{scenario.name}</h2>
       <p>{scenario.description}</p>
       <div className="scenario-inspector-meta">
-        <div><small>Workbench form</small><b>{surface.label}</b></div>
-        <div><small>Publish scope</small><b>{visibilityText(scenario.visibility)}</b></div>
-        <div><small>File sources</small><b>{scenario.sourceCount} </b></div>
+        <div><small>{t("platform.scenarioRow.workbenchForm")}</small><b>{t(surface.label)}</b></div>
+        <div><small>{t("platform.scenarioRow.publishScope")}</small><b>{t(visibilityText(scenario.visibility))}</b></div>
+        <div><small>{t("platform.scenarioRow.fileSources")}</small><b>{scenario.sourceCount} </b></div>
       </div>
       <div className="scenario-inspector-actions">
-        <Link className="primary" href={`/app/scenarios/${scenario.id}`}>{scenario.status === "ready" ? surface.primaryAction.label : availability.nextAction}</Link>
-        <Link href={`/app/scenarios/${scenario.id}/data`}>Manage files</Link>
+        <Link className="primary" href={`/app/scenarios/${scenario.id}`}>{t(scenario.status === "ready" ? surface.primaryAction.label : availability.nextAction)}</Link>
+        <Link href={`/app/scenarios/${scenario.id}/data`}>{t("platform.scenarioRow.manageFiles")}</Link>
       </div>
       <div className="scenario-inspector-prompts">
-        <b>{scenario.status === "ready" ? "Common actions" : "Available after processing"}</b>
+        <b>{scenario.status === "ready" ? t("platform.scenarioRow.commonActions") : t("platform.scenarioRow.availableAfterProcessing")}</b>
         {prompts.slice(0, 4).map((prompt) => (
           <Link key={prompt} href={`/app/scenarios/${scenario.id}/ask?q=${encodeURIComponent(prompt)}`}>{prompt}</Link>
         ))}
@@ -3289,56 +3387,59 @@ function ScenarioAssetInspector({ scenario }: { scenario: ScenarioInstance }) {
 }
 
 function ScenarioCard({ scenario }: { scenario: ScenarioInstance }) {
+  const { t } = useI18n();
   const template = templateById(scenario.templateId) ?? officialTemplates[0];
   const availability = scenarioAvailability(scenario);
   return (
     <article className="ux-card scenario">
-      <span>{template.name} · {availability.label}</span>
+      <span>{template.name} · {t(availability.label)}</span>
       <h2>{scenario.name}</h2>
-      <p>{availability.description}</p>
+      <p>{t(availability.description)}</p>
       <div className="ux-card-meta">
         <small>{scenario.owner}</small>
-        <small>{scenario.sourceCount} sources</small>
+        <small>{t("platform.chat.sourcesCount", { count: scenario.sourceCount })}</small>
         <small>{scenario.updatedAt}</small>
       </div>
       <footer>
-        <Link href={`/app/scenarios/${scenario.id}`}>{scenario.status === "ready" ? "Open scenario" : availability.nextAction}</Link>
-        <Link href={`/app/scenarios/${scenario.id}/data`}>View files</Link>
+        <Link href={`/app/scenarios/${scenario.id}`}>{scenario.status === "ready" ? t("platform.scenarioRow.openScenario") : t(availability.nextAction)}</Link>
+        <Link href={`/app/scenarios/${scenario.id}/data`}>{t("platform.scenarioRow.viewFiles")}</Link>
       </footer>
     </article>
   );
 }
 
 function ScenarioCompactCard({ scenario }: { scenario: ScenarioInstance }) {
+  const { t } = useI18n();
   const availability = scenarioAvailability(scenario);
   return (
-    <Link className="ux-compact-row home-scenario-row" href={`/app/scenarios/${scenario.id}`} aria-label={`Open scenario: ${scenario.name}`}>
+    <Link className="ux-compact-row home-scenario-row" href={`/app/scenarios/${scenario.id}`} aria-label={t("platform.scenarioRow.openScenarioAria", { name: scenario.name })}>
       <div className="home-row-copy">
         <div className="home-row-head">
           <b>{scenario.name}</b>
-          <span className={`home-scope-badge scope-${scenario.visibility}`}>{visibilityText(scenario.visibility)}</span>
+          <span className={`home-scope-badge scope-${scenario.visibility}`}>{t(visibilityText(scenario.visibility))}</span>
         </div>
         <p>{scenario.description}</p>
       </div>
-      <em className="home-row-status">{availability.label}</em>
+      <em className="home-row-status">{t(availability.label)}</em>
     </Link>
   );
 }
 
 function TaskCard({ task }: { task: ProcessingTask }) {
+  const { t } = useI18n();
   return (
     <article className="ux-task-card">
       <header className="task-card-head">
-        <span>{taskStatusGroup(task)}</span>
-        <small>{task.kind} · {ragModeLabel(task.ragMode)}</small>
+        <span>{t(taskStatusLabelKey(task))}</span>
+        <small>{task.kind} · {t(ragModeLabel(task.ragMode))}</small>
       </header>
       <h2>{task.title}</h2>
       <p>{task.userMessage}</p>
       <div className="task-meta-grid">
-        <div><span>Waiting on</span><b>{task.waitingFor}</b></div>
-        <div><span>Publish scope</span><b>{visibilityText(task.visibility)}</b></div>
-        <div><span>Submitted by</span><b>{task.owner}</b></div>
-        <div><span>Updated</span><b>{task.updatedAt}</b></div>
+        <div><span>{t("platform.task.waitingOn")}</span><b>{task.waitingFor}</b></div>
+        <div><span>{t("platform.task.publishScope")}</span><b>{t(visibilityText(task.visibility))}</b></div>
+        <div><span>{t("platform.task.submittedBy")}</span><b>{task.owner}</b></div>
+        <div><span>{t("platform.task.updated")}</span><b>{task.updatedAt}</b></div>
       </div>
       <div className="task-file-row">
         {task.files.slice(0, 3).map((fileName) => <span key={fileName}>{displaySourceName(fileName)}</span>)}
@@ -3346,20 +3447,21 @@ function TaskCard({ task }: { task: ProcessingTask }) {
       </div>
       <div className="ux-progress"><i style={{ width: `${task.progress}%` }} /></div>
       <footer className="task-card-actions">
-        <Link href={`/app/scenarios/${task.scenarioId}/tasks`}>View task</Link>
-        <Link href={`/app/scenarios/${task.scenarioId}/data`}>{task.status === "ready" ? "Manage files" : "Add files"}</Link>
+        <Link href={`/app/scenarios/${task.scenarioId}/tasks`}>{t("platform.task.viewTask")}</Link>
+        <Link href={`/app/scenarios/${task.scenarioId}/data`}>{task.status === "ready" ? t("platform.task.manageFiles") : t("platform.task.addFiles")}</Link>
       </footer>
     </article>
   );
 }
 
 function TaskMini({ task }: { task: ProcessingTask }) {
+  const { t } = useI18n();
   return (
-    <Link className="ux-task-mini-row home-task-row" href={`/app/scenarios/${task.scenarioId}/tasks`} aria-label={`View task: ${task.title}`}>
+    <Link className="ux-task-mini-row home-task-row" href={`/app/scenarios/${task.scenarioId}/tasks`} aria-label={t("platform.scenarioRow.viewTaskAria", { title: task.title })}>
       <div className="home-row-copy">
         <div className="home-row-head">
           <b>{task.title}</b>
-          <span className={`home-scope-badge scope-${task.visibility}`}>{visibilityText(task.visibility)}</span>
+          <span className={`home-scope-badge scope-${task.visibility}`}>{t(visibilityText(task.visibility))}</span>
         </div>
         <p>{task.currentStep} · {task.progress}%</p>
         <span className="home-task-progress" aria-hidden="true"><i style={{ width: `${task.progress}%` }} /></span>
@@ -3369,6 +3471,7 @@ function TaskMini({ task }: { task: ProcessingTask }) {
 }
 
 function KnowledgeAssetRow({ object, active, onSelect }: { object: KnowledgeSpaceObject; active: boolean; onSelect: () => void }) {
+  const { t } = useI18n();
   return (
     <button type="button" className={`knowledge-asset-row ${active ? "active" : ""}`} onClick={onSelect} role="listitem">
       <span className={`knowledge-type-dot type-${object.mode}`} />
@@ -3377,11 +3480,11 @@ function KnowledgeAssetRow({ object, active, onSelect }: { object: KnowledgeSpac
         <span>{truncateText(object.summary, 74)}</span>
       </div>
       <div className="knowledge-row-meta">
-        <strong>{knowledgeModeLabel(object.mode)}</strong>
+        <strong>{t(knowledgeModeLabel(object.mode))}</strong>
         <span>{object.sourceLabel}</span>
       </div>
       <div className="knowledge-row-scope">
-        <strong>{knowledgeVisibilityLabel(object.visibility)}</strong>
+        <strong>{t(knowledgeVisibilityLabel(object.visibility))}</strong>
         <span>{object.owner}</span>
       </div>
       <small>{object.updatedAt}</small>
@@ -3390,35 +3493,36 @@ function KnowledgeAssetRow({ object, active, onSelect }: { object: KnowledgeSpac
 }
 
 function KnowledgeAssetInspector({ object }: { object: KnowledgeSpaceObject | null }) {
+  const { t } = useI18n();
   if (!object) {
     return (
       <aside className="knowledge-asset-inspector">
-        <PanelHeading eyebrow="Asset details" title="Select a knowledge asset" />
-        <p>Once files are submitted and ingest finishes, sources, permission boundaries, and available governance actions appear here.</p>
-        <Link href="/app/templates">From a template</Link>
+        <PanelHeading eyebrow={t("knowledge.detailsEyebrow")} title={t("knowledge.detailsEmptyTitle")} />
+        <p>{t("knowledge.detailsEmptyBody")}</p>
+        <Link href="/app/templates">{t("knowledge.fromTemplate")}</Link>
       </aside>
     );
   }
 
   return (
     <aside className="knowledge-asset-inspector">
-      <PanelHeading eyebrow={knowledgeModeLabel(object.mode)} title={object.title} />
+      <PanelHeading eyebrow={t(knowledgeModeLabel(object.mode))} title={object.title} />
       <p>{object.summary}</p>
       <dl className="knowledge-inspector-meta">
-        <div><dt>Source</dt><dd>{object.sourceLabel}</dd></div>
-        <div><dt>Owner</dt><dd>{object.owner}</dd></div>
-        <div><dt>Access</dt><dd>{knowledgeVisibilityLabel(object.visibility)}</dd></div>
-        <div><dt>Updated</dt><dd>{object.updatedAt}</dd></div>
+        <div><dt>{t("knowledge.source")}</dt><dd>{object.sourceLabel}</dd></div>
+        <div><dt>{t("common.owner")}</dt><dd>{object.owner}</dd></div>
+        <div><dt>{t("knowledge.access")}</dt><dd>{t(knowledgeVisibilityLabel(object.visibility))}</dd></div>
+        <div><dt>{t("common.updated")}</dt><dd>{object.updatedAt}</dd></div>
       </dl>
       <div className="knowledge-inspector-note">
-        <b>Permission impact</b>
-        <span>{knowledgeAssetRiskNote(object)}</span>
+        <b>{t("knowledge.permissionImpact")}</b>
+        <span>{t(knowledgeAssetRiskNote(object))}</span>
       </div>
       <div className="knowledge-inspector-actions">
         {knowledgeGovernanceActions(object).map((action) => (
-          action === "Open scenario"
-            ? <Link key={action} href={`/app/scenarios/${object.linkedScenarioId}`}>{action}</Link>
-            : <button key={action} type="button">{action}</button>
+          action === "knowledge.actionOpenScenario"
+            ? <Link key={action} href={`/app/scenarios/${object.linkedScenarioId}`}>{t(action)}</Link>
+            : <button key={action} type="button">{t(action)}</button>
         ))}
       </div>
     </aside>
@@ -3435,6 +3539,7 @@ function PanelHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
 }
 
 function SettingsRows({ rows }: { rows: WorkspaceSettingRow[] }) {
+  const { t } = useI18n();
   return (
     <div className="settings-row-list">
       {rows.map((row) => (
@@ -3443,7 +3548,7 @@ function SettingsRows({ rows }: { rows: WorkspaceSettingRow[] }) {
             <b>{row.label}</b>
             <span>{row.value}</span>
           </div>
-          <em className={`setting-status status-${row.status}`}>{workspaceSettingStatusLabel(row.status)}</em>
+          <em className={`setting-status status-${row.status}`}>{t(workspaceSettingStatusLabel(row.status))}</em>
         </div>
       ))}
     </div>
@@ -3506,18 +3611,16 @@ function Meta({ label, value }: { label: string; value: string }) {
 }
 
 function statusLabel(status: ScenarioInstance["status"] | ProcessingTask["status"]) {
-  if (status === "ready") return "Available";
-  if (status === "processing") return "Processing";
-  if (status === "waiting_review") return "Pending review";
-  if (status === "submitted") return "Submitted";
-  if (status === "failed") return "Failed";
-  return "Draft";
+  if (status === "ready") return "platform.status.available";
+  if (status === "processing") return "platform.status.processing";
+  if (status === "waiting_review") return "platform.status.pendingReview";
+  if (status === "submitted") return "platform.status.submitted";
+  if (status === "failed") return "platform.status.failed";
+  return "platform.status.draft";
 }
 
-function countScenariosByStatus(scenarios: ScenarioInstance[], label: string) {
-  if (label === "All") return scenarios.length;
-  if (label === "Processing") return scenarios.filter((scenario) => scenario.status !== "ready" && scenario.status !== "failed").length;
-  return scenarios.filter((scenario) => statusLabel(scenario.status) === label).length;
+function countScenariosByStatus(scenarios: ScenarioInstance[], value: string) {
+  return scenarios.filter((scenario) => scenarioStatusMatchesFilter(scenario.status, value)).length;
 }
 
 function truncateText(value: string, maxLength: number) {
@@ -3528,12 +3631,12 @@ function truncateText(value: string, maxLength: number) {
 
 function scenarioTabLabel(tab: ScenarioTab) {
   const labels: Record<ScenarioTab, string> = {
-    overview: "Overview",
-    data: "Data",
-    tasks: "Tasks",
-    ask: "Q&A",
-    outputs: "Outputs",
-    settings: "Settings"
+    overview: "platform.liveTab.overview",
+    data: "platform.liveTab.data",
+    tasks: "platform.liveTab.tasks",
+    ask: "platform.liveTab.ask",
+    outputs: "platform.liveTab.outputs",
+    settings: "platform.liveTab.settings"
   };
   return labels[tab];
 }
@@ -3546,9 +3649,9 @@ function taskStatusGroup(task: ProcessingTask) {
 }
 
 function visibilityText(value: Visibility) {
-  if (value === "private") return "Private";
-  if (value === "team") return "Team";
-  return "Company";
+  if (value === "private") return "visibility.private";
+  if (value === "team") return "visibility.team";
+  return "visibility.company";
 }
 
 function compareTaskTime(a: string, b: string) {
@@ -3576,17 +3679,17 @@ function displaySourceName(value: string) {
 }
 
 function knowledgeTypeLabel(engine: LiveScenarioAnswer["engine"]) {
-  if (engine === "Naive RAG") return "Document evidence";
-  if (engine === "GraphRAG") return "Knowledge graph";
-  return "Knowledge wiki";
+  if (engine === "Naive RAG") return "knowledge.modeDocument";
+  if (engine === "GraphRAG") return "knowledge.modeRelationship";
+  return "knowledge.modeWiki";
 }
 
 // RagEngine values stay as stored fixture literals (the admin console dispatches on them); render English labels here.
 function ragModeLabel(mode: ProcessingTask["ragMode"]) {
-  if (mode === "知识百科") return "Knowledge wiki";
-  if (mode === "文档证据") return "Document evidence";
-  if (mode === "关系图谱") return "Knowledge graph";
-  return "Mixed processing";
+  if (mode === "知识百科") return "knowledge.modeWiki";
+  if (mode === "文档证据") return "knowledge.modeDocument";
+  if (mode === "关系图谱") return "knowledge.modeRelationship";
+  return "platform.evidence.mixedProcessing";
 }
 
 function groupScenarioCitations(citations: ScenarioCitation[]) {
@@ -3607,15 +3710,15 @@ function scenarioEngineClass(engine: LiveScenarioAnswer["engine"]) {
 }
 
 function scenarioEvidenceBadge(engine: LiveScenarioAnswer["engine"]) {
-  if (engine === "Naive RAG") return "Source excerpt";
-  if (engine === "GraphRAG") return "Relationship trail";
-  return "Knowledge entry";
+  if (engine === "Naive RAG") return "platform.evidence.sourceExcerpt";
+  if (engine === "GraphRAG") return "platform.evidence.relationshipTrail";
+  return "platform.evidence.knowledgeEntry";
 }
 
 function scenarioEvidenceHint(engine: LiveScenarioAnswer["engine"]) {
-  if (engine === "Naive RAG") return "From document chunks and vector retrieval; use it to check policy, contract, spreadsheet, and process text.";
-  if (engine === "GraphRAG") return "From entities, events, and relationship paths; use it to read connections between customers, needs, risks, and evidence.";
-  return "From settled pages and fact cards; use it to reuse stable conclusions and definitions.";
+  if (engine === "Naive RAG") return "platform.evidence.documentHint";
+  if (engine === "GraphRAG") return "platform.evidence.graphHint";
+  return "platform.evidence.wikiHint";
 }
 
 function scenarioEvidenceFacts(excerpt: string) {
@@ -3642,15 +3745,15 @@ function groupGlobalCitations(citations: GlobalChatCitation[]) {
 }
 
 function knowledgeSourceHint(type: GlobalChatCitation["knowledgeType"]) {
-  if (type === "Document evidence") return "Traceable excerpts from PDF, Word, Markdown, and spreadsheets; best for checking policy, contract, and process evidence.";
-  if (type === "Knowledge graph") return "Entities, events, and relationship paths; best for mapping links between customers, people, suppliers, and risk.";
-  return "Settled pages, handbooks, and fact cards; best for reusing stable conclusions quickly.";
+  if (type === "Document evidence") return "platform.evidence.documentSourceHint";
+  if (type === "Knowledge graph") return "platform.evidence.graphSourceHint";
+  return "platform.evidence.wikiSourceHint";
 }
 
 function sourceBadgeForCitation(citation: GlobalChatCitation) {
-  if (citation.knowledgeType === "Document evidence") return "Source excerpt";
-  if (citation.knowledgeType === "Knowledge graph") return "Relationship trail";
-  return "Knowledge entry";
+  if (citation.knowledgeType === "Document evidence") return "platform.evidence.sourceExcerpt";
+  if (citation.knowledgeType === "Knowledge graph") return "platform.evidence.relationshipTrail";
+  return "platform.evidence.knowledgeEntry";
 }
 
 function recommendTemplatesForGlobalAnswer(query: string, citations: GlobalChatCitation[]) {
@@ -3697,15 +3800,27 @@ function searchTokens(value: string) {
 }
 
 function scopeLabel(scope: GlobalChatScope) {
-  if (scope === "private") return "Personal files";
-  if (scope === "team") return "Team knowledge";
-  return "Company-wide";
+  if (scope === "private") return "platform.scope.privateLabel";
+  if (scope === "team") return "platform.scope.teamLabel";
+  return "platform.scope.companyLabel";
 }
 
 function scopeDescription(scope: GlobalChatScope) {
-  if (scope === "private") return "Searches only files you submitted and that were published; nothing enters team or company retrieval.";
-  if (scope === "team") return "Searches knowledge your teams can access, plus your own personal files.";
-  return "Searches company-visible knowledge plus team and personal files your account can access.";
+  if (scope === "private") return "platform.scope.privateDescription";
+  if (scope === "team") return "platform.scope.teamDescription";
+  return "platform.scope.companyDescription";
+}
+
+function knowledgeTypeKey(type: GlobalChatCitation["knowledgeType"]) {
+  if (type === "Document evidence") return "knowledge.modeDocument";
+  if (type === "Knowledge graph") return "knowledge.modeRelationship";
+  return "knowledge.modeWiki";
+}
+
+function publicationModeKey(value: string) {
+  if (value === "Private") return "visibility.private";
+  if (value === "Team") return "visibility.team";
+  return "platform.scenario.companyWide";
 }
 
 function formatAttachmentMeta(file: File) {
@@ -3731,8 +3846,8 @@ function makeTemplateSampleFile(sample: TemplateDemoWalkthrough["sampleInputs"][
 
 function displaySourceType(value: string) {
   const normalized = value.toLowerCase();
-  if (normalized.includes("csv") || normalized.includes("xlsx")) return "Spreadsheet";
-  if (normalized.includes("json")) return "Relationship data";
-  if (normalized.includes("md") || normalized.includes("txt")) return "Text";
-  return "Document";
+  if (normalized.includes("csv") || normalized.includes("xlsx")) return "platform.fileType.spreadsheet";
+  if (normalized.includes("json")) return "platform.fileType.relationship";
+  if (normalized.includes("md") || normalized.includes("txt")) return "platform.fileType.text";
+  return "platform.fileType.document";
 }

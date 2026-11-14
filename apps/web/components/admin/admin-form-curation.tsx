@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AdminShell, AdminPageHead, PanelHead } from "./admin-pages";
 import { ConfirmDialog } from "./admin-confirm-dialog";
 import type { NaiveDocument, DocChunk, GbrainPageSource, KnowledgePageItem } from "../../lib/server/platform-store";
+import { useI18n } from "../../lib/i18n/language-context";
 
 const KNOWLEDGE_SUBNAV = [
   { label: "Asset Overview", href: "/admin/knowledge-bases" },
@@ -22,10 +23,11 @@ async function api(path: string, init?: RequestInit) {
 }
 
 function KnowledgeSubnav({ active }: { active: string }) {
+  const { t } = useI18n();
   return (
-    <nav className="curation-subnav" aria-label="Knowledge base management">
+    <nav className="curation-subnav" aria-label={t("adminCuration.subnavAria")}>
       {KNOWLEDGE_SUBNAV.map((item) => (
-        <Link key={item.href} href={item.href} className={item.href === active ? "active" : ""}>{item.label}</Link>
+        <Link key={item.href} href={item.href} className={item.href === active ? "active" : ""}>{t(item.href === "/admin/knowledge-bases" ? "admin.subnav.assetOverview" : item.href === "/admin/knowledge-bases/gbrain" ? "admin.subnav.gbrain" : item.href === "/admin/knowledge-bases/naive" ? "admin.subnav.naive" : "admin.subnav.graph")}</Link>
       ))}
     </nav>
   );
@@ -33,6 +35,7 @@ function KnowledgeSubnav({ active }: { active: string }) {
 
 // ========== Document form: browse document chunks / delete noisy chunks ==========
 export function AdminDocCurationWorkbench({ documents }: { documents: NaiveDocument[] }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(documents[0]?.documentId ?? "");
   const [pending, setPending] = useState<{ title: string; description: string; danger?: boolean; confirmText?: string; run: () => void } | null>(null);
   const [chunks, setChunks] = useState<DocChunk[]>([]);
@@ -47,7 +50,7 @@ export function AdminDocCurationWorkbench({ documents }: { documents: NaiveDocum
       const d = await api(`admin/doc-curation/chunks?documentId=${encodeURIComponent(documentId)}`);
       setChunks(d.chunks ?? []);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Failed to load");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.failedToLoad"));
       setChunks([]);
     } finally {
       setLoading(false);
@@ -57,27 +60,27 @@ export function AdminDocCurationWorkbench({ documents }: { documents: NaiveDocum
   useEffect(() => { if (active) void load(active); /* eslint-disable-next-line */ }, [active]);
 
   const remove = async (chunkId: string) => {
-    setNotice("Deleting chunk (rewrites traditional_chunks)…");
+    setNotice(t("adminCuration.deletingChunk"));
     try {
       const r = await api("admin/doc-curation/chunk/delete", { method: "POST", body: JSON.stringify({ documentId: active, chunkId }) });
-      setNotice(r.message || "Deleted");
+      setNotice(r.message || t("adminCuration.deleted"));
       await load(active, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Delete failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.deleteFailed"));
     }
   };
 
   return (
-    <AdminShell active="/admin/knowledge-bases" title="Naive RAG Management">
-      <AdminPageHead eyebrow="Document form · editable governance" title="Inspect the chunks split from each document and delete noisy snippets" description="Document knowledge is split into chunks and searched by vector. Inspect the chunks actually produced for each document and delete noise such as blank, header, footer, or garbled chunks — changes rewrite traditional_chunks directly and take effect immediately in retrieval." />
+    <AdminShell active="/admin/knowledge-bases" title={t("adminCuration.docShellTitle")}>
+      <AdminPageHead eyebrow={t("adminCuration.docEyebrow")} title={t("adminCuration.docTitle")} description={t("adminCuration.docDescription")} />
       <KnowledgeSubnav active="/admin/knowledge-bases/naive" />
       {notice ? <p className="admin-console-notice" role="status">{notice}</p> : null}
       {documents.length === 0 ? (
-        <section className="admin-panel"><p className="monitoring-empty">No document-type sources have been ingested yet.</p></section>
+        <section className="admin-panel"><p className="monitoring-empty">{t("adminCuration.noDocuments")}</p></section>
       ) : (
         <>
           <section className="admin-panel">
-            <PanelHead eyebrow="Select document" title="View chunks by document" />
+            <PanelHead eyebrow={t("adminCuration.selectDocument")} title={t("adminCuration.viewChunksByDocument")} />
             <div className="curation-source-tabs">
               {documents.map((d) => (
                 <button key={d.documentId} type="button" className={d.documentId === active ? "active" : ""} onClick={() => setActive(d.documentId)}>
@@ -85,18 +88,18 @@ export function AdminDocCurationWorkbench({ documents }: { documents: NaiveDocum
                 </button>
               ))}
             </div>
-            <p className="curation-meta">Total <b>{chunks.length}</b> chunks{loading ? " · Loading…" : ""}</p>
+            <p className="curation-meta">{t("adminCuration.totalChunks", { count: chunks.length })}{loading ? ` · ${t("adminCuration.loading")}` : ""}</p>
           </section>
           <section className="admin-panel">
-            <PanelHead eyebrow="Chunk list" title="The actual split content of each chunk" />
+            <PanelHead eyebrow={t("adminCuration.chunkList")} title={t("adminCuration.chunkListTitle")} />
             <div className="curation-chunk-list">
               {chunks.map((c) => (
                 <article key={c.id}>
-                  <header><b>#{c.chunkIndex}</b><span>{c.charCount} chars</span><button type="button" className="curation-danger" onClick={() => setPending({ title: "Delete chunk", description: `Delete chunk #${c.chunkIndex}? This cannot be undone (it rewrites traditional_chunks directly).`, danger: true, confirmText: "Delete", run: () => remove(c.id) })}>Delete</button></header>
+                  <header><b>#{c.chunkIndex}</b><span>{t("adminCuration.chars", { count: c.charCount })}</span><button type="button" className="curation-danger" onClick={() => setPending({ title: t("adminCuration.deleteChunk"), description: t("adminCuration.deleteChunkDescription", { index: c.chunkIndex }), danger: true, confirmText: t("adminCuration.delete"), run: () => remove(c.id) })}>{t("adminCuration.delete")}</button></header>
                   <p>{c.text}</p>
                 </article>
               ))}
-              {!loading && chunks.length === 0 ? <p className="monitoring-empty">This document has no chunks yet.</p> : null}
+              {!loading && chunks.length === 0 ? <p className="monitoring-empty">{t("adminCuration.noChunks")}</p> : null}
             </div>
           </section>
         </>
@@ -108,6 +111,7 @@ export function AdminDocCurationWorkbench({ documents }: { documents: NaiveDocum
 
 // ========== Knowledge-page form: browse pages / edit title and body (write-through + reindex) ==========
 export function AdminPageCurationWorkbench({ sources }: { sources: GbrainPageSource[] }) {
+  const { t } = useI18n();
   const [active, setActive] = useState(sources[0]?.sourceId ?? "");
   const [pending, setPending] = useState<{ title: string; description: string; danger?: boolean; confirmText?: string; run: () => void } | null>(null);
   const [pages, setPages] = useState<KnowledgePageItem[]>([]);
@@ -125,7 +129,7 @@ export function AdminPageCurationWorkbench({ sources }: { sources: GbrainPageSou
       const d = await api(`admin/page-curation/pages?sourceId=${encodeURIComponent(sourceId)}`);
       setPages(d.pages ?? []);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Failed to load");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.failedToLoad"));
       setPages([]);
     } finally {
       setLoading(false);
@@ -138,28 +142,28 @@ export function AdminPageCurationWorkbench({ sources }: { sources: GbrainPageSou
 
   const save = async () => {
     if (!editing) return;
-    setNotice("Saving page (writes through and reindexes)…");
+    setNotice(t("adminCuration.savingPage"));
     try {
       const r = await api("admin/page-curation/page/edit", { method: "POST", body: JSON.stringify({ sourceId: active, slug: editing, title, body }) });
-      setNotice(r.message || "Saved");
+      setNotice(r.message || t("adminCuration.saved"));
       setEditing(null);
       await load(active, true);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "Save failed");
+      setNotice(e instanceof Error ? e.message : t("adminCuration.saveFailed"));
     }
   };
 
   return (
-    <AdminShell active="/admin/knowledge-bases" title="Gbrain Management">
-      <AdminPageHead eyebrow="Knowledge-page form · editable governance" title="Edit the title and body of structured knowledge pages" description="Knowledge pages are structured pages authored or compiled ahead of time. Revise a page title and its Markdown body here; saving writes the change back and re-splits the index — a better fit than deleting chunks when correcting facts or adding content." />
+    <AdminShell active="/admin/knowledge-bases" title={t("adminCuration.pageShellTitle")}>
+      <AdminPageHead eyebrow={t("adminCuration.pageEyebrow")} title={t("adminCuration.pageTitle")} description={t("adminCuration.pageDescription")} />
       <KnowledgeSubnav active="/admin/knowledge-bases/gbrain" />
       {notice ? <p className="admin-console-notice" role="status">{notice}</p> : null}
       {sources.length === 0 ? (
-        <section className="admin-panel"><p className="monitoring-empty">No knowledge-page sources have been ingested yet.</p></section>
+        <section className="admin-panel"><p className="monitoring-empty">{t("adminCuration.noKnowledgePages")}</p></section>
       ) : (
         <>
           <section className="admin-panel">
-            <PanelHead eyebrow="Select knowledge base" title="View pages by knowledge base" />
+            <PanelHead eyebrow={t("adminCuration.selectKnowledgeBase")} title={t("adminCuration.viewPagesByKnowledgeBase")} />
             <div className="curation-source-tabs">
               {sources.map((s) => (
                 <button key={s.sourceId} type="button" className={s.sourceId === active ? "active" : ""} onClick={() => setActive(s.sourceId)}>
@@ -167,31 +171,31 @@ export function AdminPageCurationWorkbench({ sources }: { sources: GbrainPageSou
                 </button>
               ))}
             </div>
-            <p className="curation-meta">Total <b>{pages.length}</b> pages{loading ? " · Loading…" : ""}</p>
+            <p className="curation-meta">{t("adminCuration.totalPages", { count: pages.length })}{loading ? ` · ${t("adminCuration.loading")}` : ""}</p>
           </section>
           <section className="admin-panel">
-            <PanelHead eyebrow="Pages" title="Page title and body (editable)" />
+            <PanelHead eyebrow={t("adminCuration.pages")} title={t("adminCuration.pageTitleBody")} />
             <div className="curation-page-list">
               {pages.map((p) => (
                 <article key={p.slug}>
                   {editing === p.slug ? (
                     <div className="curation-edit-form">
-                      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
-                      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} placeholder="Markdown body" />
+                      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("adminCuration.titlePlaceholder")} />
+                      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={10} placeholder={t("adminCuration.bodyPlaceholder")} />
                       <div className="curation-edit-actions">
-                        <button type="button" className="curation-primary" onClick={() => setPending({ title: "Overwrite page", description: "Saving overwrites this page body and reindexes it. Overwrite?", confirmText: "Save", run: save })}>Save and reindex</button>
-                        <button type="button" onClick={() => setEditing(null)}>Cancel</button>
+                        <button type="button" className="curation-primary" onClick={() => setPending({ title: t("adminCuration.overwritePage"), description: t("adminCuration.overwritePageDescription"), confirmText: t("adminCuration.save"), run: save })}>{t("adminCuration.saveAndReindex")}</button>
+                        <button type="button" onClick={() => setEditing(null)}>{t("adminCuration.cancel")}</button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <header><b>{p.title}</b><span>{p.slug}</span><button type="button" onClick={() => startEdit(p)}>Edit</button></header>
+                      <header><b>{p.title}</b><span>{p.slug}</span><button type="button" onClick={() => startEdit(p)}>{t("adminCuration.edit")}</button></header>
                       <pre>{p.body.slice(0, 600)}{p.body.length > 600 ? "…" : ""}</pre>
                     </>
                   )}
                 </article>
               ))}
-              {!loading && pages.length === 0 ? <p className="monitoring-empty">This knowledge base has no pages yet.</p> : null}
+              {!loading && pages.length === 0 ? <p className="monitoring-empty">{t("adminCuration.noPages")}</p> : null}
             </div>
           </section>
         </>

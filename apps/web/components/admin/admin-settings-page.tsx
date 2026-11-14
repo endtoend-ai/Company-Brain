@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminIntegrationSettings, type AdminIntegrationSettings } from "../../lib/fixtures/admin-governance";
 import { AdminShell } from "./admin-pages";
+import { useI18n } from "../../lib/i18n/language-context";
 
 type FetchState = "loading" | "ready" | "fallback";
 
 export function AdminSettingsPage({ initialSettings }: { initialSettings?: AdminIntegrationSettings }) {
+  const { t, formatDate } = useI18n();
   const [settings, setSettings] = useState<AdminIntegrationSettings>(initialSettings ?? adminIntegrationSettings);
   const [state, setState] = useState<FetchState>(initialSettings ? "ready" : "loading");
   const [tests, setTests] = useState<Record<string, { status: "idle" | "testing" | "ok" | "fail"; latencyMs?: number; message?: string }>>({});
@@ -33,10 +35,10 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
       if (resp.ok && r.ok) {
         setTests((prev) => ({ ...prev, [target]: { status: "ok", latencyMs: r.latencyMs, message: r.detail } }));
       } else {
-        setTests((prev) => ({ ...prev, [target]: { status: "fail", latencyMs: r.latencyMs, message: r.error ?? "Test failed" } }));
+        setTests((prev) => ({ ...prev, [target]: { status: "fail", latencyMs: r.latencyMs, message: r.error ?? t("adminSettings.testFailed") } }));
       }
     } catch {
-      setTests((prev) => ({ ...prev, [target]: { status: "fail", message: "Request failed" } }));
+      setTests((prev) => ({ ...prev, [target]: { status: "fail", message: t("adminSettings.requestFailed") } }));
     }
   }
 
@@ -61,20 +63,20 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
       if (!p.key || !p.numeric) continue;
       const raw = policyDraft[p.key];
       if (raw === undefined || raw === "") {
-        setPolicyError(`"${p.label}" cannot be empty`);
+        setPolicyError(t("adminSettings.cannotBeEmpty", { label: p.label }));
         return;
       }
       const num = Number(raw);
       if (!Number.isFinite(num)) {
-        setPolicyError(`"${p.label}" must be a number`);
+        setPolicyError(t("adminSettings.mustBeNumber", { label: p.label }));
         return;
       }
       if (num < p.numeric.min || num > p.numeric.max) {
-        setPolicyError(`"${p.label}" must be between ${p.numeric.min} and ${p.numeric.max}`);
+        setPolicyError(t("adminSettings.mustBeBetween", { label: p.label, min: p.numeric.min, max: p.numeric.max }));
         return;
       }
       if (Number.isInteger(p.numeric.step) && !Number.isInteger(num)) {
-        setPolicyError(`"${p.label}" must be an integer`);
+        setPolicyError(t("adminSettings.mustBeInteger", { label: p.label }));
         return;
       }
       body[p.key] = num;
@@ -92,17 +94,17 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         setSettings(data.settings);
         setEditingPolicies(false);
       } else {
-        setPolicyError(data.message ?? "Save failed");
+        setPolicyError(data.message ?? t("adminSettings.saveFailed"));
       }
     } catch {
-      setPolicyError("Request failed");
+      setPolicyError(t("adminSettings.requestFailed"));
     } finally {
       setPolicySaving(false);
     }
   }
 
   async function resetPolicies() {
-    if (!confirm("Reset runtime policies back to their environment variables and defaults?")) return;
+    if (!confirm(t("adminSettings.confirmResetPolicies"))) return;
     const body: Record<string, null> = {};
     for (const p of settings.runtime_policies) {
       if (p.key) body[p.key] = null;
@@ -120,10 +122,10 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         setSettings(data.settings);
         setEditingPolicies(false);
       } else {
-        setPolicyError(data.message ?? "Reset failed");
+        setPolicyError(data.message ?? t("adminSettings.resetFailed"));
       }
     } catch {
-      setPolicyError("Request failed");
+      setPolicyError(t("adminSettings.requestFailed"));
     } finally {
       setPolicySaving(false);
     }
@@ -157,11 +159,11 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
       if (raw !== undefined && raw !== "") {
         const num = Number(raw);
         if (!Number.isFinite(num) || !Number.isInteger(num)) {
-          setEngineError(`"${item.label}" TopK must be an integer`);
+          setEngineError(t("adminSettings.topKMustBeInteger", { label: item.label }));
           return;
         }
         if (num < item.min || num > item.max) {
-          setEngineError(`"${item.label}" TopK must be between ${item.min} and ${item.max}`);
+          setEngineError(t("adminSettings.topKMustBeBetween", { label: item.label, min: item.min, max: item.max }));
           return;
         }
         entry.topK = num;
@@ -173,7 +175,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         } else {
           const m = Number(rawMin);
           if (!Number.isFinite(m) || m < item.minScoreMin || m > item.minScoreMax) {
-            setEngineError(`"${item.label}" citation strength threshold must be between ${item.minScoreMin} and ${item.minScoreMax}`);
+            setEngineError(t("adminSettings.minScoreMustBeBetween", { label: item.label, min: item.minScoreMin, max: item.minScoreMax }));
             return;
           }
           entry.minScore = m;
@@ -194,17 +196,17 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         setSettings(data.settings);
         setEditingEngines(false);
       } else {
-        setEngineError(data.message ?? "Save failed");
+        setEngineError(data.message ?? t("adminSettings.saveFailed"));
       }
     } catch {
-      setEngineError("Request failed");
+      setEngineError(t("adminSettings.requestFailed"));
     } finally {
       setEngineSaving(false);
     }
   }
 
   async function resetEngines() {
-    if (!confirm("Reset every engine retrieval parameter (TopK and citation strength threshold) to its default?")) return;
+    if (!confirm(t("adminSettings.confirmResetEngines"))) return;
     const body: Record<string, { topK: null; minScore?: null }> = {};
     for (const item of settings.engine_retrieval) {
       body[item.engine] = item.supportsMinScore ? { topK: null, minScore: null } : { topK: null };
@@ -222,10 +224,10 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         setSettings(data.settings);
         setEditingEngines(false);
       } else {
-        setEngineError(data.message ?? "Reset failed");
+        setEngineError(data.message ?? t("adminSettings.resetFailed"));
       }
     } catch {
-      setEngineError("Request failed");
+      setEngineError(t("adminSettings.requestFailed"));
     } finally {
       setEngineSaving(false);
     }
@@ -253,34 +255,48 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
     };
   }, [initialSettings]);
 
-  const statusLabel = settings.overall_status === "ready" ? "All available" : settings.overall_status === "blocked" ? "Configuration blocked" : "Partially unverified";
-  const checkedAt = useMemo(() => formatCheckedAt(settings.checked_at), [settings.checked_at]);
+  const statusLabel =
+    settings.overall_status === "ready"
+      ? t("adminSettings.statusReady")
+      : settings.overall_status === "blocked"
+        ? t("adminSettings.statusBlocked")
+        : t("adminSettings.statusPartial");
+  const checkedAt = useMemo(
+    () => formatDate(settings.checked_at, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }),
+    [settings.checked_at, formatDate]
+  );
 
   return (
-    <AdminShell active="/admin/settings" title="Integrations">
+    <AdminShell active="/admin/settings" title={t("adminSettings.shellTitle")}>
       <section className="admin-head admin-settings-head">
-        <span>Integrations</span>
-        <h1>Integrations control center</h1>
-        <p>Admins confirm here that the models, parsers, databases, and the three RAG engines are connected. Workspace scenarios only consume the business capabilities mapped from them.</p>
+        <span>{t("adminSettings.eyebrow")}</span>
+        <h1>{t("adminSettings.title")}</h1>
+        <p>{t("adminSettings.description")}</p>
         <div className="admin-settings-toolbar">
           <strong className={`settings-status ${settings.overall_status}`}>{statusLabel}</strong>
-          <small>{state === "ready" ? `Last checked: ${checkedAt}` : state === "loading" ? "Reading the platform API..." : "Platform API not connected; showing the local fallback configuration"}</small>
-          <button type="button" onClick={() => window.location.reload()}>Recheck</button>
+          <small>
+            {state === "ready"
+              ? t("adminSettings.lastChecked", { value: checkedAt })
+              : state === "loading"
+                ? t("adminSettings.readingApi")
+                : t("adminSettings.fallbackNote")}
+          </small>
+          <button type="button" onClick={() => window.location.reload()}>{t("adminSettings.recheck")}</button>
         </div>
       </section>
 
       <section className="settings-section settings-secret-matrix">
         <div className="settings-section-title">
-          <h2>Secret status matrix</h2>
-          <p>Only environment variable names, configuration state, and masked fingerprints are exposed, so the console never leaks real secrets.</p>
+          <h2>{t("adminSettings.secretMatrix")}</h2>
+          <p>{t("adminSettings.secretMatrixBody")}</p>
         </div>
         <div className="settings-secret-grid">
           {[...settings.providers, ...settings.parsers].flatMap((item) => item.secrets.map((secret) => (
             <article key={`${item.id}-${secret.env_name}`} className="settings-secret-row">
               <b>{secret.env_name}</b>
               <span>{item.label}</span>
-              <em>{secret.configured ? "Configured" : "Not configured"}</em>
-              <small>{secret.fingerprint ?? "No fingerprint"}</small>
+              <em>{secret.configured ? t("adminSettings.configured") : t("adminSettings.notConfigured")}</em>
+              <small>{secret.fingerprint ?? t("adminSettings.noFingerprint")}</small>
             </article>
           )))}
         </div>
@@ -288,8 +304,8 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
 
       <section className="settings-section">
         <div className="settings-section-title">
-          <h2>Models and embeddings</h2>
-          <p>These determine answer quality, embedding dimensions, and retrieval across all three knowledge bases.</p>
+          <h2>{t("adminSettings.modelsAndEmbeddings")}</h2>
+          <p>{t("adminSettings.modelsAndEmbeddingsBody")}</p>
         </div>
         <div className="settings-card-grid">
           {settings.providers.map((provider) => (
@@ -302,10 +318,10 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                 <SecretBadge configured={provider.secrets.every((item) => item.configured)} />
               </header>
               <dl>
-                <div><dt>Endpoint</dt><dd>{provider.base_url ?? "Not configured"}</dd></div>
-                <div><dt>Model</dt><dd>{provider.model ?? "Not configured"}</dd></div>
-                {provider.dimensions ? <div><dt>Vector dimensions</dt><dd>{provider.dimensions}</dd></div> : null}
-                {provider.secrets.map((secret) => <div key={secret.env_name}><dt>{secret.env_name}</dt><dd>{secret.configured ? `Configured ${secret.fingerprint ?? ""}` : "Not configured"}</dd></div>)}
+                <div><dt>{t("adminSettings.endpoint")}</dt><dd>{provider.base_url ?? t("adminSettings.notConfigured")}</dd></div>
+                <div><dt>{t("adminSettings.model")}</dt><dd>{provider.model ?? t("adminSettings.notConfigured")}</dd></div>
+                {provider.dimensions ? <div><dt>{t("adminSettings.vectorDimensions")}</dt><dd>{provider.dimensions}</dd></div> : null}
+                {provider.secrets.map((secret) => <div key={secret.env_name}><dt>{secret.env_name}</dt><dd>{secret.configured ? t("adminSettings.configuredFingerprint", { fingerprint: secret.fingerprint ?? "" }) : t("adminSettings.notConfigured")}</dd></div>)}
               </dl>
               <div className="admin-pills">{provider.controls.map((item) => <span key={item}>{item}</span>)}</div>
               <TestConnectionControl target={provider.id} test={tests[provider.id]} onTest={testConnection} />
@@ -316,8 +332,8 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
 
       <section className="settings-section">
         <div className="settings-section-title">
-          <h2>Document parsing</h2>
-          <p>Turns PDFs into structured material that can be chunked, cited, and traced.</p>
+          <h2>{t("adminSettings.documentParsing")}</h2>
+          <p>{t("adminSettings.documentParsingBody")}</p>
         </div>
         <div className="settings-card-grid">
           {settings.parsers.map((parser) => (
@@ -330,9 +346,9 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                 <SecretBadge configured={parser.secrets.every((item) => item.configured)} />
               </header>
               <dl>
-                <div><dt>Version</dt><dd>{parser.model_version ?? "Not configured"}</dd></div>
-                <div><dt>Language</dt><dd>{parser.language ?? "Not configured"}</dd></div>
-                {parser.secrets.map((secret) => <div key={secret.env_name}><dt>{secret.env_name}</dt><dd>{secret.configured ? `Configured ${secret.fingerprint ?? ""}` : "Not configured"}</dd></div>)}
+                <div><dt>{t("adminSettings.version")}</dt><dd>{parser.model_version ?? t("adminSettings.notConfigured")}</dd></div>
+                <div><dt>{t("adminSettings.language")}</dt><dd>{parser.language ?? t("adminSettings.notConfigured")}</dd></div>
+                {parser.secrets.map((secret) => <div key={secret.env_name}><dt>{secret.env_name}</dt><dd>{secret.configured ? t("adminSettings.configuredFingerprint", { fingerprint: secret.fingerprint ?? "" }) : t("adminSettings.notConfigured")}</dd></div>)}
               </dl>
               <div className="admin-pills">{parser.options.map((item) => <span key={item}>{item}</span>)}</div>
             </article>
@@ -342,8 +358,8 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
 
       <section className="settings-section">
         <div className="settings-section-title">
-          <h2>RAG module health</h2>
-          <p>The admin console routes workspace scenarios to the real ingest and retrieval paths behind Gbrain, Naive RAG, and GraphRAG.</p>
+          <h2>{t("adminSettings.ragModuleHealth")}</h2>
+          <p>{t("adminSettings.ragModuleHealthBody")}</p>
         </div>
         <div className="settings-service-list">
           {settings.modules.map((module) => (
@@ -356,7 +372,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                 </div>
               </div>
               <code>{module.base_url}</code>
-              <span>{module.status === "ok" ? "Service available" : module.status === "error" ? "Service unavailable" : "Awaiting check"}</span>
+              <span>{module.status === "ok" ? t("adminSettings.serviceAvailable") : module.status === "error" ? t("adminSettings.serviceUnavailable") : t("adminSettings.awaitingCheck")}</span>
               <TestConnectionControl target={module.id} test={tests[module.id]} onTest={testConnection} />
             </article>
           ))}
@@ -366,16 +382,16 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
       <section className="settings-section">
         <div>
           <div className="settings-section-title">
-            <h2>Database access boundaries</h2>
-            <p>Only a connection summary is shown, never passwords or full connection strings; each database maps to its own permissions and knowledge asset boundary.</p>
+            <h2>{t("adminSettings.databaseAccess")}</h2>
+            <p>{t("adminSettings.databaseAccessBody")}</p>
           </div>
           <div className="admin-table settings-db-table">
             {settings.databases.map((database) => (
               <div key={database.id}>
                 <b>{database.label}</b>
-                <span>{database.database ?? "Not configured"}</span>
-                <span>{database.host ? `${database.host}${database.port ? `:${database.port}` : ""}` : "Not configured"}</span>
-                <em>{database.configured ? "Configured" : "Not configured"}</em>
+                <span>{database.database ?? t("adminSettings.notConfigured")}</span>
+                <span>{database.host ? `${database.host}${database.port ? `:${database.port}` : ""}` : t("adminSettings.notConfigured")}</span>
+                <em>{database.configured ? t("adminSettings.configured") : t("adminSettings.notConfigured")}</em>
                 <small>{database.env_name}</small>
               </div>
             ))}
@@ -386,19 +402,19 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
       <section className="settings-section settings-config-stack">
         <div>
           <div className="settings-section-title">
-            <h2>Runtime policies</h2>
-            <p>These affect task processing, state recovery, and where files are written.</p>
+            <h2>{t("adminSettings.runtimePolicies")}</h2>
+            <p>{t("adminSettings.runtimePoliciesBody")}</p>
           </div>
           <div className="settings-policy-list">
             <div className="settings-policy-toolbar">
               {!editingPolicies ? (
-                <button type="button" onClick={startEditPolicies}>Edit</button>
+                <button type="button" onClick={startEditPolicies}>{t("adminSettings.edit")}</button>
               ) : (
                 <>
-                  <button type="button" onClick={resetPolicies} disabled={policySaving}>Restore defaults</button>
-                  <button type="button" onClick={cancelEditPolicies} disabled={policySaving}>Cancel</button>
+                  <button type="button" onClick={resetPolicies} disabled={policySaving}>{t("adminSettings.restoreDefaults")}</button>
+                  <button type="button" onClick={cancelEditPolicies} disabled={policySaving}>{t("adminSettings.cancel")}</button>
                   <button type="button" onClick={savePolicies} disabled={policySaving}>
-                    {policySaving ? "Saving..." : "Save"}
+                    {policySaving ? t("adminSettings.saving") : t("adminSettings.save")}
                   </button>
                 </>
               )}
@@ -430,7 +446,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                     <span>{policy.value}</span>
                     {key && policy.source ? (
                       <small className="settings-policy-source">
-                        {policy.source === "db" ? "DB override" : policy.source === "env" ? "Environment variable" : "Default"}
+                        {policy.source === "db" ? t("adminSettings.dbOverride") : policy.source === "env" ? t("adminSettings.envVar") : t("adminSettings.default")}
                       </small>
                     ) : null}
                     <p>{policy.impact}</p>
@@ -443,15 +459,15 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                 <>
                   <div className="settings-policy-group">
                     <div className="settings-policy-group-head">
-                      <h3>System infrastructure</h3>
-                      <p>Access tokens, ingest mode, and where files land (operations settings, mostly read-only).</p>
+                      <h3>{t("adminSettings.systemInfrastructure")}</h3>
+                      <p>{t("adminSettings.systemInfrastructureBody")}</p>
                     </div>
                     {systemItems.map(renderPolicy)}
                   </div>
                   <div className="settings-policy-group">
                     <div className="settings-policy-group-head">
-                      <h3>Global reranking (rerank)</h3>
-                      <p>Tuning for company-wide retrieval and reranking. Use Edit in the top-right to change values.</p>
+                      <h3>{t("adminSettings.globalRerank")}</h3>
+                      <p>{t("adminSettings.globalRerankBody")}</p>
                     </div>
                     {retrievalItems.map(renderPolicy)}
                   </div>
@@ -462,19 +478,19 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
         </div>
         <div>
         <div className="settings-section-title">
-          <h2>Per-engine retrieval parameters</h2>
-          <p>Override the number of retrieved results per engine (TopK, 1–30). Naive RAG also supports a relative citation strength threshold (0–1, normalized RRF filtering of weak citations; only this engine has that layer). Leave blank to use each retrieval path's default; neither setting affects the platform reranking layer.</p>
+          <h2>{t("adminSettings.perEngineRetrieval")}</h2>
+          <p>{t("adminSettings.perEngineRetrievalBody")}</p>
         </div>
         <div className="settings-policy-list">
           <div className="settings-policy-toolbar">
             {!editingEngines ? (
-              <button type="button" onClick={startEditEngines}>Edit</button>
+              <button type="button" onClick={startEditEngines}>{t("adminSettings.edit")}</button>
             ) : (
               <>
-                <button type="button" onClick={resetEngines} disabled={engineSaving}>Restore defaults</button>
-                <button type="button" onClick={cancelEditEngines} disabled={engineSaving}>Cancel</button>
+                <button type="button" onClick={resetEngines} disabled={engineSaving}>{t("adminSettings.restoreDefaults")}</button>
+                <button type="button" onClick={cancelEditEngines} disabled={engineSaving}>{t("adminSettings.cancel")}</button>
                 <button type="button" onClick={saveEngines} disabled={engineSaving}>
-                  {engineSaving ? "Saving..." : "Save"}
+                  {engineSaving ? t("adminSettings.saving") : t("adminSettings.save")}
                 </button>
               </>
             )}
@@ -490,7 +506,7 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                     min={item.min}
                     max={item.max}
                     step={1}
-                    placeholder="TopK not set"
+                    placeholder={t("adminSettings.topKPlaceholder")}
                     value={engineDraft[item.engine] ?? ""}
                     onChange={(event) => setEngineDraft((prev) => ({ ...prev, [item.engine]: event.target.value }))}
                   />
@@ -500,27 +516,27 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
                       min={item.minScoreMin}
                       max={item.minScoreMax}
                       step={0.05}
-                      placeholder="Citation threshold not set"
+                      placeholder={t("adminSettings.citationThresholdPlaceholder")}
                       value={engineMinDraft[item.engine] ?? ""}
                       onChange={(event) => setEngineMinDraft((prev) => ({ ...prev, [item.engine]: event.target.value }))}
                     />
                   ) : null}
-                  <p>{item.default_hint}{item.supportsMinScore ? "; relative citation strength threshold 0–1: leave blank for no filtering" : ""}</p>
+                  <p>{item.default_hint}{item.supportsMinScore ? t("adminSettings.minScoreHint") : ""}</p>
                 </article>
               );
             }
             return (
               <article key={item.engine}>
                 <b>{item.label}</b>
-                <span>TopK: {item.topK ?? "Not set"}</span>
+                <span>{t("adminSettings.topK", { value: item.topK ?? t("adminSettings.notSet") })}</span>
                 <small className="settings-policy-source">
-                  {item.source === "db" ? "DB override" : "Default"}
+                  {item.source === "db" ? t("adminSettings.dbOverride") : t("adminSettings.default")}
                 </small>
                 {item.supportsMinScore ? (
                   <>
-                    <span>Citation threshold: {item.minScore ?? "Not set"}</span>
+                    <span>{t("adminSettings.citationThreshold", { value: item.minScore ?? t("adminSettings.notSet") })}</span>
                     <small className="settings-policy-source">
-                      {item.minScoreSource === "db" ? "DB override" : "Default"}
+                      {item.minScoreSource === "db" ? t("adminSettings.dbOverride") : t("adminSettings.default")}
                     </small>
                   </>
                 ) : null}
@@ -536,7 +552,8 @@ export function AdminSettingsPage({ initialSettings }: { initialSettings?: Admin
 }
 
 function SecretBadge({ configured }: { configured: boolean }) {
-  return <b className={`secret-badge ${configured ? "ok" : "missing"}`}>{configured ? "Connected" : "Missing config"}</b>;
+  const { t } = useI18n();
+  return <b className={`secret-badge ${configured ? "ok" : "missing"}`}>{configured ? t("adminSettings.connected") : t("adminSettings.missingConfig")}</b>;
 }
 
 function TestConnectionControl({
@@ -548,17 +565,18 @@ function TestConnectionControl({
   test?: { status: "idle" | "testing" | "ok" | "fail"; latencyMs?: number; message?: string };
   onTest: (target: string) => void;
 }) {
+  const { t } = useI18n();
   const testing = test?.status === "testing";
   return (
     <div className="settings-test-connection">
       <button type="button" disabled={testing} onClick={() => onTest(target)}>
-        {testing ? "Testing..." : "Test connection"}
+        {testing ? t("adminSettings.testing") : t("adminSettings.testConnection")}
       </button>
       {test && test.status !== "idle" && !testing ? (
         <span className={`settings-test-result ${test.status}`}>
           {test.status === "ok"
             ? `✅ OK${test.latencyMs != null ? ` (${test.latencyMs}ms)` : ""}`
-            : `❌ ${test.message ?? "Failed"}`}
+            : `❌ ${test.message ?? t("adminSettings.failed")}`}
         </span>
       ) : null}
     </div>
@@ -566,11 +584,7 @@ function TestConnectionControl({
 }
 
 function StatusDot({ status }: { status: "ok" | "error" | "unknown" }) {
-  return <i className={`service-dot ${status}`} aria-label={status} />;
-}
-
-function formatCheckedAt(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("en-US", { hour12: false });
+  const { t } = useI18n();
+  const label = status === "ok" ? t("adminSettings.serviceAvailable") : status === "error" ? t("adminSettings.serviceUnavailable") : t("adminSettings.awaitingCheck");
+  return <i className={`service-dot ${status}`} aria-label={label} />;
 }

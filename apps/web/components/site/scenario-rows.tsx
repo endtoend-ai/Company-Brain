@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../../lib/i18n/language-context";
 
 function useInView<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -25,6 +26,7 @@ function useInView<T extends HTMLElement>() {
 
 /* ---------- demo: 文档资料库 (搜) ---------- */
 function DocDemo() {
+  const { t } = useI18n();
   const qs = [
     {
       q: "What's the hotel limit for travel?",
@@ -70,7 +72,7 @@ function DocDemo() {
             <path d="M14 2v6h6" />
           </svg>
           {d.cite}
-          <span className="sd-open">Open source</span>
+          <span className="sd-open">{t("siteDemo.docOpenSource")}</span>
         </div>
       </div>
     </div>
@@ -79,20 +81,21 @@ function DocDemo() {
 
 /* ---------- demo: 个人知识库 (读) ---------- */
 function ReadDemo() {
+  const { t } = useI18n();
   const { ref, seen } = useInView<HTMLDivElement>();
   const lines = [
-    "Split on semantic boundaries, not a fixed character count.",
-    "Keep each chunk long enough to stand on its own.",
-    "Backtest with real business questions, then tune the granularity."
+    t("siteDemo.docPoint1"),
+    t("siteDemo.docPoint2"),
+    t("siteDemo.docPoint3")
   ];
   return (
     <div className={`sd sd-read ${seen ? "in" : ""}`} ref={ref}>
       <div className="sd-doc-head">
-        <span className="sd-kind">Knowledge entry</span>
-        <span className="sd-src">Traces to 4 source files</span>
+        <span className="sd-kind">{t("siteDemo.docKind")}</span>
+        <span className="sd-src">{t("siteDemo.docTraces")}</span>
       </div>
-      <h4>Tuning retrieval quality · team notes</h4>
-      <p className="sd-lead">The mistakes a project keeps repeating, settled into one entry you can check and question anytime.</p>
+      <h4>{t("siteDemo.docTitle")}</h4>
+      <p className="sd-lead">{t("siteDemo.docLead")}</p>
       <ul className="sd-points">
         {lines.map((l, k) => (
           <li key={k} style={{ transitionDelay: `${k * 220 + 200}ms` }}>
@@ -101,7 +104,7 @@ function ReadDemo() {
         ))}
       </ul>
       <div className="sd-followup">
-        <span>Follow up on this entry…</span>
+        <span>{t("siteDemo.docFollowup")}</span>
         <i className="sd-caret" />
       </div>
     </div>
@@ -125,12 +128,13 @@ const REL_NODES = [
 ];
 
 function RelationDemo() {
+  const { t } = useI18n();
   const { ref, seen } = useInView<HTMLDivElement>();
   return (
     <div className={`sd sd-rel ${seen ? "in" : ""}`} ref={ref}>
       <div className="sd-rel-head">
-        <span className="sd-kind">Knowledge graph</span>
-        <span className="sd-src">Aggregated from 3 files</span>
+        <span className="sd-kind">{t("siteDemo.graphKind")}</span>
+        <span className="sd-src">{t("siteDemo.graphTraces")}</span>
       </div>
       <svg viewBox="0 0 340 208" className="sd-graph" aria-hidden>
         <defs>
@@ -195,8 +199,7 @@ function RelationDemo() {
         </g>
       </svg>
       <p className="sd-rel-ans">
-        <strong>Acme Health</strong> is owned by Maya Chen and linked to Project Atlas plus 2
-        contracts in negotiation; Jordan Lee is running the renewal.
+        <strong>{t("siteDemo.graphAnswerSubject")}</strong> {t("siteDemo.graphAnswerRest")}
       </p>
     </div>
   );
@@ -205,35 +208,36 @@ function RelationDemo() {
 const rows = [
   {
     key: "document",
-    badge: "Document library · Search",
+    badge: "siteDemo.rowDocumentBadge",
     color: "var(--c-document)",
     soft: "var(--c-document-soft)",
-    title: "Turn policies, contracts, and reports into citable evidence",
-    desc: "Upload official documents, ask one question, and get the answer with the source paragraph highlighted—no more scrolling a 40-page PDF for one line.",
+    title: "siteDemo.rowDocumentTitle",
+    desc: "siteDemo.rowDocumentDesc",
     demo: <DocDemo />
   },
   {
     key: "personal",
-    badge: "Personal knowledge base · Read",
+    badge: "siteDemo.rowPersonalBadge",
     color: "var(--c-personal)",
     soft: "var(--c-personal-soft)",
-    title: "Read scattered files into one browsable knowledge entry",
-    desc: "The system reads a pile of files and writes an entry with citations; browse it like an encyclopedia and follow up on any part of it.",
+    title: "siteDemo.rowPersonalTitle",
+    desc: "siteDemo.rowPersonalDesc",
     demo: <ReadDemo />
   },
   {
     key: "relation",
-    badge: "Relationship knowledge base · Accounts / Risk / Due diligence",
+    badge: "siteDemo.rowRelationBadge",
     color: "var(--c-relation)",
     soft: "var(--c-relation-soft)",
     bright: "var(--c-relation-bright)",
-    title: "Connect entities, events, and evidence into a business graph you can question",
-    desc: "Built for account profiles, renewal risk, supplier due diligence, and complex project retros. It turns the key entities, relationships, and evidence in documents, spreadsheets, and call notes into a searchable graph asset.",
+    title: "siteDemo.rowRelationTitle",
+    desc: "siteDemo.rowRelationDesc",
     demo: <RelationDemo />
   }
 ];
 
 export function ScenarioRows() {
+  const { t } = useI18n();
   return (
     <div className="scn-rows">
       {rows.map((r, i) => (
@@ -247,9 +251,9 @@ export function ScenarioRows() {
           }}
         >
           <div className="scn-row-text">
-            <span className="scn-badge">{r.badge}</span>
-            <h3 className="display">{r.title}</h3>
-            <p>{r.desc}</p>
+            <span className="scn-badge">{t(r.badge)}</span>
+            <h3 className="display">{t(r.title)}</h3>
+            <p>{t(r.desc)}</p>
           </div>
           <div className="scn-row-demo">{r.demo}</div>
         </div>

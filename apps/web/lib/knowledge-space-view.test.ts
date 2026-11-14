@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import type { KnowledgeSpaceObject } from "./fixtures/frontstage";
+import { en } from "./i18n/dictionaries/en";
+import { translate } from "./i18n";
 import {
   buildKnowledgeAssetStats,
   filterKnowledgeAssets,
@@ -9,6 +11,8 @@ import {
   knowledgeModeLabel,
   knowledgeVisibilityLabel
 } from "./knowledge-space-view";
+
+const t = (key: string) => translate(en, key);
 
 const objects: KnowledgeSpaceObject[] = [
   {
@@ -54,9 +58,14 @@ const objects: KnowledgeSpaceObject[] = [
 
 describe("knowledge space view model", () => {
   test("labels RAG-backed asset types and permission scopes in product language", () => {
-    expect(knowledgeModeLabel("document")).toBe("Document evidence");
-    expect(knowledgeModeLabel("relationship")).toBe("Knowledge graph");
-    expect(knowledgeVisibilityLabel("company")).toBe("Company");
+    expect(t(knowledgeModeLabel("document"))).toBe("Document evidence");
+    expect(t(knowledgeModeLabel("relationship"))).toBe("Knowledge graph");
+    expect(t(knowledgeVisibilityLabel("company"))).toBe("Company");
+  });
+
+  test("returns translation keys rather than hardcoded copy", () => {
+    expect(knowledgeModeLabel("document")).toBe("knowledge.modeDocument");
+    expect(knowledgeVisibilityLabel("company")).toBe("visibility.company");
   });
 
   test("builds stats for scopes and asset types", () => {
@@ -72,15 +81,16 @@ describe("knowledge space view model", () => {
   });
 
   test("filters by scope, asset type and search query", () => {
-    expect(filterKnowledgeAssets(objects, { scope: "team", kind: "all", query: "" }).map((object) => object.id)).toEqual(["graph-1"]);
-    expect(filterKnowledgeAssets(objects, { scope: "all", kind: "document", query: "contract" }).map((object) => object.id)).toEqual(["doc-1"]);
-    expect(filterKnowledgeAssets(objects, { scope: "all", kind: "all", query: "sales" }).map((object) => object.id)).toEqual(["graph-1", "wiki-1"]);
+    expect(filterKnowledgeAssets(objects, { scope: "team", kind: "all", query: "" }, t).map((object) => object.id)).toEqual(["graph-1"]);
+    expect(filterKnowledgeAssets(objects, { scope: "all", kind: "document", query: "contract" }, t).map((object) => object.id)).toEqual(["doc-1"]);
+    expect(filterKnowledgeAssets(objects, { scope: "all", kind: "all", query: "sales" }, t).map((object) => object.id)).toEqual(["graph-1", "wiki-1"]);
+    expect(filterKnowledgeAssets(objects, { scope: "all", kind: "all", query: "document evidence" }, t).map((object) => object.id)).toEqual(["doc-1"]);
   });
 
   test("exposes governance actions according to permission boundary", () => {
-    expect(knowledgeGovernanceActions(objects[0])).toContain("View retrieval scope");
-    expect(knowledgeGovernanceActions(objects[1])).toContain("Request company publish");
-    expect(knowledgeGovernanceActions(objects[2])).toContain("Request team sharing");
-    expect(knowledgeAssetRiskNote(objects[0])).toContain("company-wide Q&A");
+    expect(knowledgeGovernanceActions(objects[0]).map(t)).toContain("View retrieval scope");
+    expect(knowledgeGovernanceActions(objects[1]).map(t)).toContain("Request company publish");
+    expect(knowledgeGovernanceActions(objects[2]).map(t)).toContain("Request team sharing");
+    expect(t(knowledgeAssetRiskNote(objects[0]))).toContain("company-wide Q&A");
   });
 });

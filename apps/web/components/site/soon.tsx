@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { Logo } from "./logo";
 import { ThemeToggle } from "../theme-provider";
+import { useI18n } from "../../lib/i18n/language-context";
 
 export function Soon({ title, kind }: { title: string; kind: string }) {
+  const { t } = useI18n();
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="site-header scrolled">
         <div className="wrap wrap-wide site-header-inner">
-          <Link href="/" aria-label="Back to home">
+          <Link href="/" aria-label={t("nav.backToHome")}>
             <Logo />
           </Link>
           <div className="site-header-actions" style={{ marginLeft: "auto" }}>
             <ThemeToggle />
             <Link href="/" className="btn btn-ghost btn-sm">
-              Back to home
+              {t("nav.backToHome")}
             </Link>
           </div>
         </div>
@@ -36,12 +38,11 @@ export function Soon({ title, kind }: { title: string; kind: string }) {
             {title}
           </h1>
           <p style={{ color: "var(--text-2)", maxWidth: "32em", margin: "0 auto", lineHeight: 1.7 }}>
-            This area is still being built against the agreed visual system. Head back to the
-            homepage to preview the marketing site and the workspace / admin console.
+            {t("soon.pageBody")}
           </p>
           <div style={{ marginTop: 30 }}>
             <Link href="/" className="btn btn-primary">
-              ← Back to homepage
+              {t("soon.backHomepage")}
             </Link>
           </div>
         </div>
